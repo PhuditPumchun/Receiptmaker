@@ -1,0 +1,3 @@
+[console_scripts]
+fdf = fdf.cli:main
+
