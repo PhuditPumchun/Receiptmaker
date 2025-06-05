@@ -3,10 +3,8 @@ from docx.shared import Cm, Pt
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.enum.table import WD_ALIGN_VERTICAL
-from docx.shared import Inches # Needed for precise tab stop placement
-# No longer need OxmlElement as we are not using paragraph borders for the line
-# from docx.oxml.shared import OxmlElement # Removed as not needed
-
+from docx.shared import Inches 
+from Backend import Data
 # Helper function to set Thai font properties
 def set_font_thai(run, size_pt=16, bold=False):
     """
@@ -17,24 +15,13 @@ def set_font_thai(run, size_pt=16, bold=False):
     run.font.size = Pt(size_pt)
     run.font.bold = bold
 
-# Dummy Data class for demonstration purposes.
-# In your actual application, Data would be populated dynamically.
-class Data:
-    def __init__(self):
-        self.day = "15 พฤษภาคม 2568" # Adjust date as needed
-        self.list = [
-            ["ถั่วเขียวเราะเปลือก", "ว.งานบ้านงานครัว", "1 ถุง", "มิ.ย.68"],
-            ["ถั่วแดงหลวง", "ว.งานบ้านงานครัว", "8 ถุง", ""],
-            ["ใบชา", "ว.งานบ้านงานครัว", "2 กล่อง", ""],
-            ["ถุงใส ขนาด 20x30 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", ""],
-            ["ถุงตัดตรง LLDPE ขนาด 16x26 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", ""],
-            ["ส้มโอ", "ว.งานบ้านงานครัว", "30 กก.", ""],
-            ["มะม่วง", "ว.งานบ้านงานครัว", "30 กก.", ""],
-            ["แป้งเซอรี่ฟ้า (แป้งอเนกประสงค์)", "ว.งานบ้านงานครัว", "2 ถุง", ""],
-            ["แป้งมัน", "ว.งานบ้านงานครัว", "1 ถุง", ""],
-            ["เนยเค็ม", "ว.งานบ้านงานครัว", "1 ก้อน", ""],
-            ["ไข่ขาวเหลว", "ว.งานบ้านงานครัว", "1 แพ็ค"],
-        ]
+Datum = Data()
+Datum.appendlist("ถั่วเขียวเราะเปลือก", "ว.งานบ้านงานครัว", "1 ถุง", "มิ.ย.68")
+Datum.appendlist("ถั่วแดงหลวง", "ว.งานบ้านงานครัว", "8 ถุง", "")
+Datum.appendlist("ใบชา", "ว.งานบ้านงานครัว", "2 กล่อง", "")
+Datum.appendlist("ถุงใส ขนาด 20x30 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", "")
+Datum.appendlist("ถุงตัดตรง LLDPE ขนาด 16x26 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", "")
+
 
 def Sleeve1(Data):
     doc = Document()
@@ -222,5 +209,4 @@ def Sleeve1(Data):
 
 # Example usage with dummy data
 if __name__ == '__main__':
-    data_instance = Data()
-    Sleeve1(data_instance)
+    Sleeve1(Datum)

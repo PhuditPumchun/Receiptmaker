@@ -22,7 +22,7 @@ def add_item():
 def refresh_table():
     for i in tree.get_children():
         tree.delete(i)
-    for row in data.list[1:]:
+    for row in data.list:
         tree.insert('', 'end', values=row)
 
 def clear_fields():
@@ -60,9 +60,11 @@ def delete_selected_item():
         return
 
     item = tree.item(selected[0])
-    index_to_delete = int(item["values"][0])  # ลำดับเป็นค่าแรก
-    data.remove_item_by_index(index_to_delete)
-    refresh_table()
+    values = item["values"]
+
+    if values in data.list:
+        data.list.remove(values)
+        refresh_table()
 
 # สร้างหน้าต่างหลัก
 root = tk.Tk()
@@ -102,7 +104,7 @@ tk.Button(button_frame, text="สร้างบันทึกข้อคว�
 tk.Button(button_frame, text="ล้างข้อมูลทั้งหมด", width=20, fg="red", command=clear_all).grid(row=1, column=2, pady=5)
 
 # ===== ตารางแสดงรายการ =====
-columns = ("ลำดับ", "ชื่อพัสดุ", "บัญชี 3 มิติ", "จำนวน", "วันที่ต้องการใช้")
+columns = ("ชื่อพัสดุ", "หน่วยงาน", "จำนวน", "วันที่ต้องการใช้")
 tree = ttk.Treeview(root, columns=columns, show="headings", height=15)
 
 for col in columns:
