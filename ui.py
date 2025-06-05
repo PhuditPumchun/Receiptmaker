@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 from Backend import Data 
-from Sleeve import Sleeve1, summarySleeve
+from Docxtest import Sleeve1
 
 data = Data()
 
@@ -41,11 +41,11 @@ def run_sleeve1():
     else:
         messagebox.showinfo("ไม่สำเร็จ", "สร้างบันทึกข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
 
-def run_summary():
-    if summarySleeve(data) == 1:
-        messagebox.showinfo("สำเร็จ", "สร้างสรุปเรียบร้อยแล้ว")
-    else:
-        messagebox.showinfo("ไม่สำเร็จ", "สร้างสรุปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
+# def run_summary():
+#     if summarySleeve(data) == 1:
+#         messagebox.showinfo("สำเร็จ", "สร้างสรุปเรียบร้อยแล้ว")
+#     else:
+#         messagebox.showinfo("ไม่สำเร็จ", "สร้างสรุปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
 
 def clear_all():
     confirm = messagebox.askyesno("ยืนยัน", "ต้องการล้างข้อมูลทั้งหมดหรือไม่?")
@@ -98,7 +98,7 @@ tk.Button(button_frame, text="เรียงตามจำนวน", width=20
 tk.Button(button_frame, text="ลบรายการที่เลือก", width=20, command=delete_selected_item).grid(row=0, column=2, padx=5, pady=5)
 
 tk.Button(button_frame, text="สร้างบันทึกข้อความ", width=20, command=run_sleeve1).grid(row=1, column=0, padx=5, pady=5)
-tk.Button(button_frame, text="สร้างสรุป", width=20, command=run_summary).grid(row=1, column=1, padx=5, pady=5)
+# tk.Button(button_frame, text="สร้างสรุป", width=20, command=run_summary).grid(row=1, column=1, padx=5, pady=5)
 tk.Button(button_frame, text="ล้างข้อมูลทั้งหมด", width=20, fg="red", command=clear_all).grid(row=1, column=2, pady=5)
 
 # ===== ตารางแสดงรายการ =====

@@ -8,10 +8,6 @@ from datetime import datetime
 class Data:
     def __init__(self):
         self.list = [
-            ['ลำดับ', 'รายการขอซื้อจ้าง\n[ขั้นตอนตามระเบียบข้อ 22(2)]',
-             'รายการแยกวัสดุตาม\nระบบบัญชี\n3มิติ',
-             'จำนวนหน่วย',
-             'กำหนดเวลาที่\nต้องการใช้พัสดุ\n[ตามระเบียบข้อ\n22 (5)]']
         ]
         
         self.day = self.format_thai_date(datetime.today())
