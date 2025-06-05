@@ -11,13 +11,13 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 import Backend
 import os
 
-Datum = Backend.Data()
-Datum.appendlist("เครื่องพิมพ์", "วัสดุสำนักงาน", "2 เครื่อง", "5 มิ.ย. 2568")
-Datum.appendlist("กระดาษ A4", "วัสดุสำนักงาน", "10 รีม", "6 มิ.ย. 2568")
-Datum.appendlist("เครื่องพิมพ์", "วัสดุสำนักงาน", "2 เครื่อง", "7 มิ.ย. 2568")
-Datum.appendlist("โต๊ะทำงาน", "วัสดุสำนักงาน", "1 ตัว", "8 มิ.ย. 2568")
-Datum.appendlist("แฟ้มเอกสาร", "วัสดุสำนักงาน", "10 เล่ม", "9 มิ.ย. 2568")
-Datum.appendlist("กระดาษ A4", "วัสดุสำนักงาน", "5 รีม", "10 มิ.ย. 2568")
+Data = Backend.Data()
+Data.appendlist("เครื่องพิมพ์", "วัสดุสำนักงาน", "2 เครื่อง", "5 มิ.ย. 2568")
+Data.appendlist("กระดาษ A4", "วัสดุสำนักงาน", "10 รีม", "6 มิ.ย. 2568")
+Data.appendlist("เครื่องพิมพ์", "วัสดุสำนักงาน", "2 เครื่อง", "7 มิ.ย. 2568")
+Data.appendlist("โต๊ะทำงาน", "วัสดุสำนักงาน", "1 ตัว", "8 มิ.ย. 2568")
+Data.appendlist("แฟ้มเอกสาร", "วัสดุสำนักงาน", "10 เล่ม", "9 มิ.ย. 2568")
+Data.appendlist("กระดาษ A4", "วัสดุสำนักงาน", "5 รีม", "10 มิ.ย. 2568")
 
 font_dir = os.path.join(os.path.dirname(__file__), 'Font')
 # Ensure the Font directory exists for these paths to be valid
@@ -255,5 +255,5 @@ def summarySleeve(data):
 
 
 if __name__ == "__main__":
-    Sleeve1(Datum)
-    summarySleeve(Datum)
+    Sleeve1(Data)
+    summarySleeve(Data)
