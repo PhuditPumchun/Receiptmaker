@@ -59,8 +59,6 @@ def Sleeve1(Data):
     styles.add(ParagraphStyle(name='ThaiBold', fontName='THSarabun-Bold', fontSize=16, leading=20))
     
     # สไตล์ใหม่สำหรับข้อความในตาราง
-    # leading: ระยะห่างระหว่างบรรทัด, ค่าเริ่มต้น 120% ของ fontSize. ถ้า fontSize 14, leading 16.8
-    # เราต้องการให้มีระยะห่างมากกว่าเดิม เลยปรับ leading เพิ่มขึ้น
     styles.add(ParagraphStyle(name='TableCell', fontName='THSarabun', fontSize=14, leading=18, alignment=TA_CENTER)) # Increased leading
     styles.add(ParagraphStyle(name='TableHeader', fontName='THSarabun-Bold', fontSize=14, leading=18, alignment=TA_CENTER)) # Increased leading
 
@@ -70,7 +68,6 @@ def Sleeve1(Data):
 
     # โลโก้และหัวเรื่อง
     logo_path = os.path.join(os.path.dirname(__file__), "logo.jpg")
-    # Create a dummy logo.jpg if it doesn't exist
     if not os.path.exists(logo_path):
         from PIL import Image as PILImage
         dummy_img = PILImage.new('RGB', (100, 100), color = 'red')
@@ -113,7 +110,6 @@ def Sleeve1(Data):
     elements.append(Spacer(1, 0.5 * cm))
 
     # ตารางข้อมูลจาก Backend
-    # แปลงข้อมูลใน Data.list ให้เป็น Paragraph objects เพื่อควบคุมสไตล์ได้
     table_data_formatted = []
     # Header row
     header_row = []
@@ -128,22 +124,19 @@ def Sleeve1(Data):
             formatted_row.append(Paragraph(str(cell_text), styles['TableCell']))
         table_data_formatted.append(formatted_row)
 
-    table = Table(table_data_formatted, colWidths=[2*cm, 5*cm, 4*cm, 3*cm, 3*cm])
+    # กำหนด colWidths ให้ตารางหลัก
+    main_table_col_widths = [2*cm, 5*cm, 4*cm, 3*cm, 3*cm]
+    table = Table(table_data_formatted, colWidths=main_table_col_widths)
     table.setStyle(TableStyle([
-        # ไม่จำเป็นต้องตั้ง FONTNAME, FONTSIZE, ALIGN, VALIGN สำหรับทั้งตารางแล้ว เพราะ ParagraphStyle จัดการแล้ว
         ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.85, 0.85, 0.85)), # Light grey background for header
         ('GRID', (0, 0), (-1, -1), 0.7, colors.black),
         
-        # ปรับ padding เพื่อให้ข้อความอยู่สูงขึ้นเล็กน้อยและไม่ชนขอบ
-        # ถ้าต้องการให้ "สูงขึ้น" จริงๆ โดยใช้ VALIGN='MIDDLE' ให้ลด TOPPADDING และเพิ่ม BOTTOMPADDING
-        # แต่เพื่อความสมดุลและไม่ให้ชิดขอบมากไป ลองปรับค่าดังนี้:
-        ('TOPPADDING', (0, 0), (-1, -1), 0.15*cm),  # ลดจาก 0.25cm เดิม เพื่อให้ข้อความดูสูงขึ้น
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0.15*cm), # ลดจาก 0.25cm เดิม เพื่อให้ข้อความดูสูงขึ้น
+        ('TOPPADDING', (0, 0), (-1, -1), 0.15*cm),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0.15*cm),
         ('LEFTPADDING', (0, 0), (-1, -1), 0.1*cm),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0.1*cm),
         
-        # กำหนด VALIGN สำหรับทั้งตารางเป็น 'MIDDLE' หรือ 'TOP'
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), # 'TOP' จะทำให้ข้อความชิดด้านบนมากขึ้น
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(table)
 
@@ -155,6 +148,7 @@ def Sleeve1(Data):
     # สร้าง PDF
     doc.build(elements)
     print("✅ สร้างไฟล์ PDF เสร็จสมบูรณ์ →", file_name)
+    return 1
 
 def summarySleeve(data):
     file_name = "summary.pdf"
@@ -177,6 +171,11 @@ def summarySleeve(data):
     elements.append(Spacer(1, 0.5 * cm))
 
     # ตารางรายการทั้งหมด
+    # กำหนด colWidths ให้เท่ากับ main_table_col_widths จาก Sleeve1
+    # Note: ต้องตรวจสอบว่า data.list มีจำนวนคอลัมน์ตรงกับ colWidths ที่กำหนด
+    # ตารางนี้มี 5 คอลัมน์ ดังนั้นใช้ colWidths จาก Sleeve1 ได้เลย
+    all_items_table_col_widths = [2*cm, 5*cm, 4*cm, 3*cm, 3*cm] 
+
     table_data = [['ลำดับ', 'รายการ', 'หมวดหมู่', 'จำนวน', 'วันที่']]
     # แปลงข้อมูลใน Data.list ให้เป็น Paragraph objects เพื่อควบคุมสไตล์ได้
     summary_table_data_formatted = []
@@ -197,18 +196,17 @@ def summarySleeve(data):
         summary_table_data_formatted.append(formatted_row)
 
 
-    table = Table(summary_table_data_formatted, repeatRows=1, colWidths=[2*cm, 5*cm, 5*cm, 3*cm, 3*cm])
+    table = Table(summary_table_data_formatted, repeatRows=1, colWidths=all_items_table_col_widths)
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         
-        # ปรับ padding
-        ('TOPPADDING', (0, 0), (-1, -1), 0.15*cm), # ลด padding บนเล็กน้อย
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0.15*cm), # ลด padding ล่างเล็กน้อย
+        ('TOPPADDING', (0, 0), (-1, -1), 0.15*cm),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0.15*cm),
         ('LEFTPADDING', (0, 0), (-1, -1), 0.1*cm),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0.1*cm),
         
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), # จัดกึ่งกลางแนวตั้ง
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(table)
     elements.append(Spacer(1, 1 * cm))
@@ -216,8 +214,13 @@ def summarySleeve(data):
     # ตารางสรุป
     elements.append(Paragraph("สรุปรายการรวม", styles['ThaiBold']))
     elements.append(Spacer(1, 1 * cm))
+    
+    # ตารางสรุปมี 4 คอลัมน์, ต้องปรับ colWidths ให้รวมกันได้ 17 cm (ความกว้างรวมของตารางแรก)
+    # เช่น [2*cm, 7*cm, 5*cm, 3*cm] รวม 17cm - อันนี้เท่ากับของเดิมพอดี
+    # หรือปรับให้เหมาะสมกับเนื้อหา
+    summary_table_col_widths = [2*cm, 7*cm, 5*cm, 3*cm] # รวม 17cm
+
     summary_data_rows = [['ลำดับ', 'รายการ', 'หมวดหมู่', 'รวมจำนวน']]
-    # แปลงข้อมูลใน data.summary() ให้เป็น Paragraph objects
     final_summary_table_data_formatted = []
     # Header row for final summary
     final_summary_header_row = []
@@ -227,30 +230,28 @@ def summarySleeve(data):
 
     for i, row in enumerate(data.summary(), start=1):
         formatted_row = []
-        # Add sequence number
         formatted_row.append(Paragraph(str(i), styles['SummaryTableCell']))
-        # Add other data from row[1:]
         for cell_text in row[1:]:
             formatted_row.append(Paragraph(str(cell_text), styles['SummaryTableCell']))
         final_summary_table_data_formatted.append(formatted_row)
 
-    summary_table = Table(final_summary_table_data_formatted, repeatRows=1, colWidths=[2*cm, 7*cm, 5*cm, 3*cm])
+    summary_table = Table(final_summary_table_data_formatted, repeatRows=1, colWidths=summary_table_col_widths)
     summary_table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.beige),
         ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         
-        # ปรับ padding
-        ('TOPPADDING', (0, 0), (-1, -1), 0.15*cm), # ลด padding บนเล็กน้อย
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0.15*cm), # ลด padding ล่างเล็กน้อย
+        ('TOPPADDING', (0, 0), (-1, -1), 0.15*cm),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 0.15*cm),
         ('LEFTPADDING', (0, 0), (-1, -1), 0.1*cm),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0.1*cm),
         
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'), # จัดกึ่งกลางแนวตั้ง
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
     elements.append(summary_table)
 
     doc.build(elements)
     print("✅ สร้างไฟล์ PDF สรุปเสร็จสมบูรณ์ →", file_name)
+    return 1
 
 
 if __name__ == "__main__":

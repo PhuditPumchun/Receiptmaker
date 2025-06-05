@@ -68,3 +68,9 @@ class Data:
                         [str(len(self.data_summary) + 1), name, row[2], f"{amount} {unit}"]
                     )
         return self.data_summary
+    
+    def remove_item_by_index(self, index):
+        if 1 <= index < len(self.list):
+            self.list.pop(index)
+            for i, row in enumerate(self.list[1:], start=1):
+                row[0] = i
