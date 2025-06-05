@@ -11,7 +11,13 @@ import Backend
 import os
 
 Datum = Backend.Data()
-Datum.appendlist("a","b","c","d")
+Datum.appendlist("เครื่องพิมพ์", "วัสดุสำนักงาน", "2 เครื่อง", "5 มิ.ย. 2568")
+Datum.appendlist("กระดาษ A4", "วัสดุสำนักงาน", "10 รีม", "6 มิ.ย. 2568")
+Datum.appendlist("เครื่องพิมพ์", "วัสดุสำนักงาน", "2 เครื่อง", "7 มิ.ย. 2568")
+Datum.appendlist("โต๊ะทำงาน", "วัสดุสำนักงาน", "1 ตัว", "8 มิ.ย. 2568")
+Datum.appendlist("แฟ้มเอกสาร", "วัสดุสำนักงาน", "10 เล่ม", "9 มิ.ย. 2568")
+Datum.appendlist("กระดาษ A4", "วัสดุสำนักงาน", "5 รีม", "10 มิ.ย. 2568")
+
 def Sleeve1(Data):
     # โหลดฟอนต์ภาษาไทย
     font_dir = os.path.join(os.path.dirname(__file__), 'Font')
@@ -67,7 +73,6 @@ def Sleeve1(Data):
     #    ('GRID', (0, 0), (-1, -1), 0.7, colors.black), # Keep grid for visualization if needed
     ]))
     elements.append(header_table)
-
 
     # ข้อความส่วนราชการและวัน
     elements.append(Spacer(1, 0.3 * cm))
