@@ -139,6 +139,17 @@ def Sleeve1(Data, title, runNumber, bodyText1):
     section.top_margin = Cm(2.5)
     section.bottom_margin = Cm(2.5)
 
+    # เพิ่มโลโก้ที่มุมซ้ายบน
+    section.different_first_page_header_footer = True
+
+    try:
+        header_first = section.first_page_header
+        header_first_paragraph = header_first.paragraphs[0] if header_first.paragraphs else header_first.add_paragraph()
+        run = header_first_paragraph.add_run()
+        run.add_picture("Logo.jpg", width=Cm(1.91))  # ปรับขนาดตามต้องการ
+    except Exception as e:
+        print("⚠️ ไม่สามารถแทรกรูปโลโก้ได้:", e)
+
     # หัวข้อ "บันทึกข้อความ"
     p = doc.add_paragraph()
     p.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
@@ -147,7 +158,7 @@ def Sleeve1(Data, title, runNumber, bodyText1):
 
     # ส่วนราชการ
     p_gov_section = doc.add_paragraph("ส่วนราชการ ภาควิชาอุตสาหกรรมเกษตร คณะเกษตรศาสตร์ฯ ทรัพยากรธรรมชาติและสิ่งแวดล้อม โทร. 2749")
-    set_font_thai(p_gov_section.runs[0], size_pt=16) # ตรวจสอบให้แน่ใจว่าฟอนต์ถูกตั้งค่า
+    set_font_thai(p_gov_section.runs[0], size_pt=16)
     p_gov_section.paragraph_format.space_after = Pt(0)
 
     # ที่ และ วันที่
@@ -234,7 +245,7 @@ def Sleeve1(Data, title, runNumber, bodyText1):
         cells[4].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         cells[4].vertical_alignment = WD_ALIGN_VERTICAL.TOP
 
-    for _ in range(3): # เพิ่มบรรทัดว่าง 3 บรรทัดหลังตาราง
+    for _ in range(3):
         doc.add_paragraph()
 
     # ลงชื่อ
@@ -243,7 +254,6 @@ def Sleeve1(Data, title, runNumber, bodyText1):
     run_sig = p_signature.add_run("ลงชื่อ ..........................................................")
     set_font_thai(run_sig, size_pt=16)
 
-    # ชื่อในวงเล็บ
     p_name = doc.add_paragraph()
     p_name.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
     run_name = p_name.add_run("(รศ.ดร.ทิพวรรณ ทองสุข)")
