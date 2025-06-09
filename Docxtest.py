@@ -4,6 +4,7 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.oxml.ns import qn
 from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.shared import Inches
+import re
 import os
 import time
 import platform
@@ -25,12 +26,15 @@ def set_font_thai(run, size_pt=16, bold=False):
 def prepare_body_paragraphs(doc, raw_text):
     lines = raw_text.split('\n')
     for line in lines:
-        clean_line = line.strip()
+        clean_line = line.rstrip()
         if clean_line:
+            # แปลง spacebar 14 ตัว (หรือมากกว่า) ให้กลายเป็น \t\t
+            clean_line = re.sub(r' {14,}', '\t\t', clean_line)
+
             para = doc.add_paragraph()
             para.paragraph_format.first_line_indent = Cm(1.27)
             run = para.add_run(clean_line)
-            set_font_thai(run, size_pt=16)
+            set_font_thai(run, size_pt=15)
 
 # ปิดเฉพาะแท็บไฟล์ Word ที่เปิดอยู่ (ถ้ามี)
 def close_word_file_if_open(filename):

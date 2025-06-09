@@ -35,17 +35,49 @@ def sort_data():
     data.sorted()
     refresh_table()
 
-def run_sleeve1():
-    if Sleeve1(data) == 1:
-        messagebox.showinfo("สำเร็จ", "สร้างบันทึกข้อความเรียบร้อยแล้ว")
-    else:
-        messagebox.showinfo("ไม่สำเร็จ", "สร้างบันทึกข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
+def open_create_dialog():
+    dialog = tk.Toplevel(root)
+    dialog.title("กรอกข้อมูลบันทึกข้อความ")
+    dialog.geometry("500x400")
 
-# def run_summary():
-#     if summarySleeve(data) == 1:
-#         messagebox.showinfo("สำเร็จ", "สร้างสรุปเรียบร้อยแล้ว")
-#     else:
-#         messagebox.showinfo("ไม่สำเร็จ", "สร้างสรุปไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
+    tk.Label(dialog, text="เรื่อง (Title):").pack(anchor="w", padx=10, pady=(10,0))
+    entry_title = tk.Entry(dialog, width=60)
+    entry_title.pack(padx=10, pady=5)
+
+    tk.Label(dialog, text="ที่ (Run Number):").pack(anchor="w", padx=10, pady=(10,0))
+    entry_runnumber = tk.Entry(dialog, width=60)
+    entry_runnumber.pack(padx=10, pady=5)
+
+    tk.Label(dialog, text="เนื้อความ (Body Text):").pack(anchor="w", padx=10, pady=(10,0))
+    text_body = tk.Text(dialog, width=60, height=10)
+    text_body.pack(padx=10, pady=5)
+
+    example_text = (
+        "ด้วยข้าพเจ้า รศ.ดร.ทิพวรรณ ทองสุข มีความจำเป็นที่จะขออนุมัติจัดซื้อวัสดุงานบ้านงานครัว จำนวน 11 รายการ\n"
+        "เพื่อใช้ในการทดลองทำผลิตภัณฑ์ สำหรับเข้าแข่งขันประกวดนวัตกรรมผลิตภัณฑ์อาหาร ปี 2568\n"
+        "และต้องการใช้สิ่งของดังกล่าว ประมาณ มิถุนายน 2568\n"
+        "โดยขอแต่งตั้งกรรมการตรวจรับ คือ ผศ.ดร.ปริตา ธนสุกาญจน์"
+    )
+    text_body.insert("1.0", example_text)
+
+    def on_create():
+        title = entry_title.get().strip()
+        runnum = entry_runnumber.get().strip()
+        body = text_body.get("1.0", "end").strip()
+
+        if not title or not runnum or not body:
+            messagebox.showwarning("ข้อมูลไม่ครบ", "กรุณากรอกข้อมูลให้ครบทุกช่อง")
+            return
+
+        success = Sleeve1(data, title, runnum, body)
+        if success == 1:
+            messagebox.showinfo("สำเร็จ", "สร้างบันทึกข้อความเรียบร้อยแล้ว")
+            dialog.destroy()
+        else:
+            messagebox.showerror("ไม่สำเร็จ", "สร้างบันทึกข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
+
+    btn_create = tk.Button(dialog, text="สร้างบันทึกข้อความ", command=on_create)
+    btn_create.pack(pady=10)
 
 def clear_all():
     confirm = messagebox.askyesno("ยืนยัน", "ต้องการล้างข้อมูลทั้งหมดหรือไม่?")
@@ -99,8 +131,7 @@ tk.Button(button_frame, text="เพิ่มรายการ", width=20, comm
 tk.Button(button_frame, text="เรียงตามจำนวน", width=20, command=sort_data).grid(row=0, column=1, padx=5, pady=5)
 tk.Button(button_frame, text="ลบรายการที่เลือก", width=20, command=delete_selected_item).grid(row=0, column=2, padx=5, pady=5)
 
-tk.Button(button_frame, text="สร้างบันทึกข้อความ", width=20, command=run_sleeve1).grid(row=1, column=0, padx=5, pady=5)
-# tk.Button(button_frame, text="สร้างสรุป", width=20, command=run_summary).grid(row=1, column=1, padx=5, pady=5)
+tk.Button(button_frame, text="สร้างบันทึกข้อความ", width=20, command=open_create_dialog).grid(row=1, column=0, padx=5, pady=5)
 tk.Button(button_frame, text="ล้างข้อมูลทั้งหมด", width=20, fg="red", command=clear_all).grid(row=1, column=2, pady=5)
 
 # ===== ตารางแสดงรายการ =====
