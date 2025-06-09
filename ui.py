@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from Backend import Data 
 from Docxtest import Sleeve1
+from excelsummary import create_excel_summary # Import the new function
 
 data = Data()
 
@@ -52,9 +53,6 @@ def open_create_dialog():
     text_body = tk.Text(dialog, width=60, height=10)
     text_body.pack(padx=10, pady=5)
 
-    # ปรับเปลี่ยน example_text ให้สอดคล้องกับการทำงานของ prepare_body_paragraphs ที่แก้ไขใหม่
-    # ใช้ช่องว่าง 14 ตัว หรือ Tab เพื่อให้เกิดการเว้นย่อหน้าใหม่
-    # หากต้องการขึ้นบรรทัดใหม่แต่ยังอยู่ในย่อหน้าเดิม ไม่ต้องนำหน้าด้วยช่องว่าง/Tab
     example_text = (
         "              ด้วยข้าพเจ้า รศ.ดร.ทิพวรรณ ทองสุข มีความจำเป็นที่จะขออนุมัติจัดซื้อวัสดุงานบ้านงานครัว จำนวน 11 รายการ\n"
         "เพื่อใช้ในการทดลองทำผลิตภัณฑ์ สำหรับเข้าแข่งขันประกวดนวัตกรรมผลิตภัณฑ์อาหาร ปี 2568\n"
@@ -73,7 +71,6 @@ def open_create_dialog():
     def on_create():
         title = entry_title.get().strip()
         runnum = entry_runnumber.get().strip()
-        # ใช้ "end-1c" เพื่อลบอักขระ newline สุดท้ายที่ Text widget อาจเพิ่มเข้ามา
         body = text_body.get("1.0", "end-1c").strip() 
 
         if not title or not runnum or not body:
@@ -89,6 +86,22 @@ def open_create_dialog():
 
     btn_create = tk.Button(dialog, text="สร้างบันทึกข้อความ", command=on_create)
     btn_create.pack(pady=10)
+
+def create_excel():
+    """
+    ฟังก์ชันสำหรับเรียกสร้างไฟล์ Excel สรุปยอด
+    """
+    if not data.list:
+        messagebox.showwarning("ไม่มีข้อมูล", "กรุณาเพิ่มรายการพัสดุในตารางก่อนสร้างไฟล์ Excel")
+        return
+    
+    # เรียกใช้ฟังก์ชันสร้าง Excel จาก excelsummary.py
+    success = create_excel_summary(data.list)
+    if success:
+        messagebox.showinfo("สำเร็จ", "สร้างไฟล์ Excel สรุปยอดเรียบร้อยแล้ว")
+    else:
+        messagebox.showerror("ไม่สำเร็จ", "สร้างไฟล์ Excel สรุปยอดไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
+
 
 def clear_all():
     confirm = messagebox.askyesno("ยืนยัน", "ต้องการล้างข้อมูลทั้งหมดหรือไม่?")
@@ -143,6 +156,8 @@ tk.Button(button_frame, text="เรียงตามจำนวน", width=20
 tk.Button(button_frame, text="ลบรายการที่เลือก", width=20, command=delete_selected_item).grid(row=0, column=2, padx=5, pady=5)
 
 tk.Button(button_frame, text="สร้างบันทึกข้อความ", width=20, command=open_create_dialog).grid(row=1, column=0, padx=5, pady=5)
+# เพิ่มปุ่มสำหรับสร้าง Excel สรุปยอด
+tk.Button(button_frame, text="สร้าง Excel สรุปยอด", width=20, command=create_excel).grid(row=1, column=1, padx=5, pady=5)
 tk.Button(button_frame, text="ล้างข้อมูลทั้งหมด", width=20, fg="red", command=clear_all).grid(row=1, column=2, pady=5)
 
 # ===== ตารางแสดงรายการ =====
