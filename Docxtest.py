@@ -6,7 +6,11 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.shared import Inches
 import os
 import time
-import platform # เพิ่ม import นี้เข้ามา
+import platform
+
+# ไลบรารีสำหรับควบคุม Word COM (Windows เท่านั้น)
+import win32com.client
+import pythoncom
 
 from Backend import Data
 
@@ -21,31 +25,44 @@ def set_font_thai(run, size_pt=16, bold=False):
 def prepare_body_paragraphs(doc, raw_text):
     lines = raw_text.split('\n')
     for line in lines:
-        # แก้ไขบรรทัดนี้: ลบการแทนที่แท็บ 6 ช่องว่าง เพราะเราจะใช้ paragraph_format.first_line_indent แทน
-        clean_line = line.strip() # ใช้ strip() เพื่อลบช่องว่างหัวท้าย
+        clean_line = line.strip()
         if clean_line:
             para = doc.add_paragraph()
-            # เพิ่ม indent สำหรับย่อหน้าแรกของแต่ละบรรทัด (ถ้าจำเป็น)
-            # ถ้าต้องการให้ทุกย่อหน้ามี indent ให้ใส่ใน clean_line ก่อน add_run หรือใช้ style
             para.paragraph_format.first_line_indent = Cm(1.27)
             run = para.add_run(clean_line)
             set_font_thai(run, size_pt=16)
 
-# 🔁 บันทึกไฟล์พร้อม retry และ kill Word อัตโนมัติ
+# ปิดเฉพาะแท็บไฟล์ Word ที่เปิดอยู่ (ถ้ามี)
+def close_word_file_if_open(filename):
+    pythoncom.CoInitialize()  # เรียก COM สำหรับ thread นี้
+    try:
+        word = win32com.client.Dispatch("Word.Application")
+        for doc in word.Documents:
+            # เปรียบเทียบชื่อไฟล์แบบไม่สนใจ case
+            if filename.lower() in doc.FullName.lower():
+                print(f"📄 พบไฟล์ {filename} ที่เปิดอยู่ใน Word — กำลังปิดแท็บ")
+                doc.Close(False)  # False = ปิดโดยไม่บันทึกซ้ำ
+                return True
+    except Exception as e:
+        print("❌ ไม่สามารถตรวจสอบหรือปิดเอกสาร Word:", e)
+    return False
+
+# บันทึกไฟล์พร้อม retry และปิดแท็บ Word เฉพาะไฟล์นั้นถ้ายังเปิดอยู่
 def save_doc_with_retry(doc, filename="Sleeve1_Output.docx", max_retries=3):
     for attempt in range(max_retries):
         try:
             doc.save(filename)
             print(f"✅ {filename} created successfully!")
-            # ✅ เพิ่มส่วนนี้เพื่อเปิดไฟล์อัตโนมัติ
             if platform.system() == "Windows":
                 os.startfile(filename)
             return True
         except PermissionError:
             print(f"⚠️ ไม่สามารถบันทึกไฟล์ {filename} ได้ อาจยังเปิดอยู่ใน Word")
-            print("🛑 กำลังพยายามปิด Microsoft Word อัตโนมัติ...")
-            os.system("taskkill /f /im WINWORD.EXE")
-            time.sleep(2)  # รอให้ Word ปิด
+            print("🔄 กำลังพยายามปิดเฉพาะแท็บของไฟล์นั้น...")
+            closed = close_word_file_if_open(filename)
+            if not closed:
+                print("⏳ รอ 2 วินาทีแล้วลองใหม่...")
+            time.sleep(2)
     print("❌ ไม่สามารถบันทึกไฟล์ได้ กรุณาปิดไฟล์ด้วยตนเองแล้วลองใหม่อีกครั้ง")
     return False
 
@@ -103,10 +120,10 @@ def Sleeve1(Data, title, runNumber, bodyText1):
     p_dean.paragraph_format.space_before = Pt(0)
     p_dean.paragraph_format.space_after = Pt(12)
 
-    # ✅ เนื้อความ
+    # เนื้อความ
     prepare_body_paragraphs(doc, bodyText1)
 
-    # ✅ ตาราง
+    # ตาราง
     table = doc.add_table(rows=1, cols=5)
     table.style = 'Table Grid'
     hdr_cells = table.rows[0].cells
@@ -173,7 +190,7 @@ def Sleeve1(Data, title, runNumber, bodyText1):
 
     return save_doc_with_retry(doc)
 
-# ✅ ทดสอบ
+# ทดสอบ
 if __name__ == '__main__':
     title = "ขออนุมัติABC"
     run = "อว 0603.07.04/"
