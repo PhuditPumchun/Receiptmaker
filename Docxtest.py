@@ -6,6 +6,8 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.shared import Inches
 import os
 import time
+import platform # เพิ่ม import นี้เข้ามา
+
 from Backend import Data
 
 # ตั้งค่า font ภาษาไทย
@@ -19,9 +21,12 @@ def set_font_thai(run, size_pt=16, bold=False):
 def prepare_body_paragraphs(doc, raw_text):
     lines = raw_text.split('\n')
     for line in lines:
-        clean_line = line.replace('       ', '\t').strip()
+        # แก้ไขบรรทัดนี้: ลบการแทนที่แท็บ 6 ช่องว่าง เพราะเราจะใช้ paragraph_format.first_line_indent แทน
+        clean_line = line.strip() # ใช้ strip() เพื่อลบช่องว่างหัวท้าย
         if clean_line:
             para = doc.add_paragraph()
+            # เพิ่ม indent สำหรับย่อหน้าแรกของแต่ละบรรทัด (ถ้าจำเป็น)
+            # ถ้าต้องการให้ทุกย่อหน้ามี indent ให้ใส่ใน clean_line ก่อน add_run หรือใช้ style
             para.paragraph_format.first_line_indent = Cm(1.27)
             run = para.add_run(clean_line)
             set_font_thai(run, size_pt=16)
@@ -32,6 +37,9 @@ def save_doc_with_retry(doc, filename="Sleeve1_Output.docx", max_retries=3):
         try:
             doc.save(filename)
             print(f"✅ {filename} created successfully!")
+            # ✅ เพิ่มส่วนนี้เพื่อเปิดไฟล์อัตโนมัติ
+            if platform.system() == "Windows":
+                os.startfile(filename)
             return True
         except PermissionError:
             print(f"⚠️ ไม่สามารถบันทึกไฟล์ {filename} ได้ อาจยังเปิดอยู่ใน Word")
@@ -167,12 +175,12 @@ def Sleeve1(Data, title, runNumber, bodyText1):
 
 # ✅ ทดสอบ
 if __name__ == '__main__':
-    title = "ขออนุมัติซัดหน้าคุณ"
+    title = "ขออนุมัติABC"
     run = "อว 0603.07.04/"
     example_text = (
-        "       ด้วยข้าพเจ้า รศ.ดร.ทิพวรรณ ทองสุข มีความจำเป็นที่จะขออนุมัติจัดซื้อวัสดุงานบ้านงานครัว จำนวน 11 รายการ\n"
-        "       เพื่อใช้ในการทดลองทำผลิตภัณฑ์ สำหรับเข้าแข่งขันประกวดนวัตกรรมผลิตภัณฑ์อาหาร ปี 2568\n"
-        "       และต้องการใช้สิ่งของดังกล่าว ประมาณ มิถุนายน 2568\n"
-        "       โดยขอแต่งตั้งกรรมการตรวจรับ คือ ผศ.ดร.ปริตา ธนสุกาญจน์"
+        "        ด้วยข้าพเจ้า รศ.ดร.ทิพวรรณ ทองสุข มีความจำเป็นที่จะขออนุมัติจัดซื้อวัสดุงานบ้านงานครัว จำนวน 11 รายการ\n"
+        "        เพื่อใช้ในการทดลองทำผลิตภัณฑ์ สำหรับเข้าแข่งขันประกวดนวัตกรรมผลิตภัณฑ์อาหาร ปี 2568\n"
+        "        และต้องการใช้สิ่งของดังกล่าว ประมาณ มิถุนายน 2568\n"
+        "        โดยขอแต่งตั้งกรรมการตรวจรับ คือ ผศ.ดร.ปริตา ธนสุกาญจน์"
     )
-    Sleeve1(Datum, title,run, example_text)
+    Sleeve1(Datum, title, run, example_text)
