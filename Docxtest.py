@@ -16,7 +16,7 @@ import pythoncom
 from Backend import Data
 
 # ตั้งค่า font ภาษาไทย
-def set_font_thai(run, size_pt=16, bold=False):
+def set_font_thai(run, size_pt=15, bold=False):
     run.font.name = 'TH Sarabun New'
     run._element.rPr.rFonts.set(qn('w:eastAsia'), 'TH Sarabun New')
     run.font.size = Pt(size_pt)
@@ -120,7 +120,7 @@ Datum.appendlist("ถั่วเขียวเราะเปลือก", "�
 Datum.appendlist("ถั่วแดงหลวง", "ว.งานบ้านงานครัว", "8 ถุง", "")
 Datum.appendlist("ใบชา", "ว.งานบ้านงานครัว", "2 กล่อง", "")
 Datum.appendlist("ถุงใส ขนาด 20x30 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", "")
-Datum.appendlist("ถุงตัดตรง LLDPE ขนาด 16x26 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", "")
+Datum.appendlist("ถุงตัดตรง LLDPE ขนาด 15x26 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", "")
 
 def Sleeve1(Data, title, runNumber, bodyText1):
     doc = Document()
@@ -129,7 +129,7 @@ def Sleeve1(Data, title, runNumber, bodyText1):
     style = doc.styles['Normal']
     font = style.font
     font.name = 'TH Sarabun New'
-    font.size = Pt(16)
+    font.size = Pt(15)
     style._element.rPr.rFonts.set(qn('w:eastAsia'), 'TH Sarabun New')
 
     # ตั้งค่าระยะขอบหน้ากระดาษ
@@ -158,22 +158,22 @@ def Sleeve1(Data, title, runNumber, bodyText1):
 
     # ส่วนราชการ
     p_gov_section = doc.add_paragraph("ส่วนราชการ ภาควิชาอุตสาหกรรมเกษตร คณะเกษตรศาสตร์ฯ ทรัพยากรธรรมชาติและสิ่งแวดล้อม โทร. 2749")
-    set_font_thai(p_gov_section.runs[0], size_pt=16)
+    set_font_thai(p_gov_section.runs[0], size_pt=15)
     p_gov_section.paragraph_format.space_after = Pt(0)
 
     # ที่ และ วันที่
     p_ref_date = doc.add_paragraph()
     run_ref = p_ref_date.add_run(f"ที่ {runNumber}")
-    set_font_thai(run_ref, size_pt=16)
+    set_font_thai(run_ref, size_pt=15)
     p_ref_date.paragraph_format.space_after = Pt(0)
     p_ref_date.paragraph_format.tab_stops.add_tab_stop(Inches(5.5), WD_PARAGRAPH_ALIGNMENT.RIGHT)
     p_ref_date.add_run("\t")
     date_run = p_ref_date.add_run(f"วันที่ {Data.day}")
-    set_font_thai(date_run, size_pt=16)
+    set_font_thai(date_run, size_pt=15)
 
     # เรื่อง
     p_subject = doc.add_paragraph(f"เรื่อง {title}")
-    set_font_thai(p_subject.runs[0], size_pt=16)
+    set_font_thai(p_subject.runs[0], size_pt=15)
     p_subject.paragraph_format.space_after = Pt(0)
 
     # เส้นคั่น
@@ -186,7 +186,7 @@ def Sleeve1(Data, title, runNumber, bodyText1):
 
     # เรียน
     p_dean = doc.add_paragraph("เรียน คณบดีคณะเกษตรศาสตร์ฯ")
-    set_font_thai(p_dean.runs[0], size_pt=16)
+    set_font_thai(p_dean.runs[0], size_pt=15)
     p_dean.paragraph_format.space_before = Pt(0)
     p_dean.paragraph_format.space_after = Pt(12)
 
@@ -221,27 +221,27 @@ def Sleeve1(Data, title, runNumber, bodyText1):
         date_needed = row_data[3] if len(row_data) > 3 else ""
 
         run_idx = cells[0].paragraphs[0].add_run(str(idx))
-        set_font_thai(run_idx, size_pt=16)
+        set_font_thai(run_idx, size_pt=15)
         cells[0].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         cells[0].vertical_alignment = WD_ALIGN_VERTICAL.TOP
 
         run_item = cells[1].paragraphs[0].add_run(item_name)
-        set_font_thai(run_item, size_pt=16)
+        set_font_thai(run_item, size_pt=15)
         cells[1].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
         cells[1].vertical_alignment = WD_ALIGN_VERTICAL.TOP
 
         run_category = cells[2].paragraphs[0].add_run(category)
-        set_font_thai(run_category, size_pt=16)
+        set_font_thai(run_category, size_pt=15)
         cells[2].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         cells[2].vertical_alignment = WD_ALIGN_VERTICAL.TOP
 
         run_quantity = cells[3].paragraphs[0].add_run(quantity)
-        set_font_thai(run_quantity, size_pt=16)
+        set_font_thai(run_quantity, size_pt=15)
         cells[3].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         cells[3].vertical_alignment = WD_ALIGN_VERTICAL.TOP
 
         run_date_needed = cells[4].paragraphs[0].add_run(date_needed)
-        set_font_thai(run_date_needed, size_pt=16)
+        set_font_thai(run_date_needed, size_pt=15)
         cells[4].paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
         cells[4].vertical_alignment = WD_ALIGN_VERTICAL.TOP
 
@@ -252,12 +252,12 @@ def Sleeve1(Data, title, runNumber, bodyText1):
     p_signature = doc.add_paragraph()
     p_signature.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
     run_sig = p_signature.add_run("ลงชื่อ ..........................................................")
-    set_font_thai(run_sig, size_pt=16)
+    set_font_thai(run_sig, size_pt=15)
 
     p_name = doc.add_paragraph()
     p_name.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
     run_name = p_name.add_run("(รศ.ดร.ทิพวรรณ ทองสุข)")
-    set_font_thai(run_name, size_pt=16)
+    set_font_thai(run_name, size_pt=15)
 
     return save_doc_with_retry(doc)
 
