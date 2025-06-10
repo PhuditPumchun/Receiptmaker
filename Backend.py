@@ -67,7 +67,7 @@ class Data:
         if 0 <= index < len(self.list):
             self.list.pop(index)
 
-    def generate_purchase_request(self, purpose="", month_year_needed="", budget_year=""):
+    def generate_purchase_request(self, purpose="", month_year_needed="", budget_year="",people1="",people2=""):
         categorized_items = {}
         
         for item in self.list:
@@ -119,8 +119,8 @@ class Data:
         output_string += ", ".join(cost_phrases)
 
         output_string += (
-            f" โดยวิธีเฉพาะเจาะจง และขอแต่งตั้งผู้กำหนดคุณลักษณะเฉพาะ คือ รศ. ดร. ทิพวรรณ ทองสุจ "
-            f"โดยขอให้แต่งตั้งผู้ตรวจพัสดุ คือ รศ.กมลวรรณ โรจน์สุนทรกิตติ"
+            f" โดยวิธีเฉพาะเจาะจง และขอแต่งตั้งผู้กำหนดคุณลักษณะเฉพาะ คือ {people1} "
+            f"โดยขอให้แต่งตั้งผู้ตรวจพัสดุ คือ {people2}"
         )
         return output_string
 
@@ -140,7 +140,7 @@ Datum.appendlist("กระดาษ A4", "ว.สำนักงาน", "2 ร
 generated_text = Datum.generate_purchase_request(
     purpose="ใช้ในการเรียนการสอนวิชาจุลชีววิทยาและงานธุรการ",
     month_year_needed="กรกฎาคม 2568",
-    budget_year="2568"
+    budget_year="2568",people1="เก",people2="เก"
 )
 
 if __name__ == "__main__":

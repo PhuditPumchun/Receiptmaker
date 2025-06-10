@@ -41,7 +41,7 @@ def sort_data():
 def open_create_dialog():
     dialog = tk.Toplevel(root)
     dialog.title("กรอกข้อมูลบันทึกข้อความ")
-    dialog.geometry("700x550")
+    dialog.geometry("700x700") # ปรับขนาดหน้าต่างให้ใหญ่ขึ้น
 
     tk.Label(dialog, text="เรื่อง (Title):").pack(anchor="w", padx=10, pady=(10,0))
     entry_title = tk.Entry(dialog, width=80)
@@ -63,6 +63,17 @@ def open_create_dialog():
     entry_budget_year = tk.Entry(dialog, width=80)
     entry_budget_year.pack(padx=10, pady=5)
 
+    # เพิ่มช่องสำหรับ People1 และ People2
+    tk.Label(dialog, text="ผู้กำหนดคุณลักษณะเฉพาะ (Person 1):").pack(anchor="w", padx=10, pady=(10,0))
+    entry_people1 = tk.Entry(dialog, width=80)
+    entry_people1.insert(0, "รศ. ดร. ทิพวรรณ ทองสุจ") # ตัวอย่างค่าเริ่มต้น
+    entry_people1.pack(padx=10, pady=5)
+
+    tk.Label(dialog, text="ผู้ตรวจพัสดุ (Person 2):").pack(anchor="w", padx=10, pady=(10,0))
+    entry_people2 = tk.Entry(dialog, width=80)
+    entry_people2.insert(0, "รศ.กมลวรรณ โรจน์สุนทรกิตติ") # ตัวอย่างค่าเริ่มต้น
+    entry_people2.pack(padx=10, pady=5)
+
     tk.Label(dialog, text="ตัวอย่างเนื้อความ (Generated Body Text - Review Only):").pack(anchor="w", padx=10, pady=(10,0))
     text_body_display = tk.Text(dialog, width=80, height=10, state=tk.DISABLED)
     text_body_display.pack(padx=10, pady=5)
@@ -71,11 +82,16 @@ def open_create_dialog():
         purpose = entry_purpose.get().strip()
         month_year_needed = entry_month_year.get().strip()
         budget_year = entry_budget_year.get().strip()
+        people1 = entry_people1.get().strip() # ดึงค่า people1
+        people2 = entry_people2.get().strip() # ดึงค่า people2
         
+        # ส่ง people1 และ people2 ไปยัง generate_purchase_request
         generated_text = data.generate_purchase_request(
             purpose=purpose,
             month_year_needed=month_year_needed,
-            budget_year=budget_year
+            budget_year=budget_year,
+            people1=people1, 
+            people2=people2  
         )
         
         text_body_display.config(state=tk.NORMAL)
@@ -83,8 +99,12 @@ def open_create_dialog():
         text_body_display.insert("1.0", generated_text)
         text_body_display.config(state=tk.DISABLED)
 
-    btn_preview = tk.Button(dialog, text="แสดงตัวอย่างเนื้อความ", command=update_generated_text_preview)
-    btn_preview.pack(pady=5)
+    # สร้าง Frame ใหม่สำหรับปุ่ม Preview และ Create
+    button_dialog_frame = tk.Frame(dialog)
+    button_dialog_frame.pack(pady=10)
+
+    btn_preview = tk.Button(button_dialog_frame, text="แสดงตัวอย่างเนื้อความ", command=update_generated_text_preview)
+    btn_preview.pack(side=tk.LEFT, padx=5) # จัดวางปุ่มทางซ้าย
 
     def on_create():
         title = entry_title.get().strip()
@@ -93,16 +113,22 @@ def open_create_dialog():
         purpose = entry_purpose.get().strip()
         month_year_needed = entry_month_year.get().strip()
         budget_year = entry_budget_year.get().strip()
+        people1 = entry_people1.get().strip() # ดึงค่า people1
+        people2 = entry_people2.get().strip() # ดึงค่า people2
 
-        if not title or not runnum or not purpose or not month_year_needed or not budget_year:
+        # ตรวจสอบทุกช่อง รวมถึง people1 และ people2
+        if not all([title, runnum, purpose, month_year_needed, budget_year, people1, people2]):
             messagebox.showwarning("ข้อมูลไม่ครบ", "กรุณากรอกข้อมูลบันทึกข้อความให้ครบทุกช่อง")
             return
         
         # Generate the body text using the Data class method
+        # ส่ง people1 และ people2 ไปยัง generate_purchase_request
         body_text = data.generate_purchase_request(
             purpose=purpose,
             month_year_needed=month_year_needed,
-            budget_year=budget_year
+            budget_year=budget_year,
+            people1=people1, 
+            people2=people2  
         )
 
         success = Sleeve1(data, title, runnum, body_text)
@@ -112,8 +138,8 @@ def open_create_dialog():
         else:
             messagebox.showerror("ไม่สำเร็จ", "สร้างบันทึกข้อความไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
 
-    btn_create = tk.Button(dialog, text="สร้างบันทึกข้อความ", command=on_create) # ปุ่มนี้จะเรียก on_create
-    btn_create.pack(pady=10)
+    btn_create = tk.Button(button_dialog_frame, text="สร้างบันทึกข้อความ", command=on_create)
+    btn_create.pack(side=tk.LEFT, padx=5) # จัดวางปุ่มทางซ้าย
 
 def create_excel():
     if not data.list:
@@ -125,6 +151,7 @@ def create_excel():
         messagebox.showinfo("สำเร็จ", "สร้างไฟล์ Excel สรุปยอดเรียบร้อยแล้ว")
     else:
         messagebox.showerror("ไม่สำเร็จ", "สร้างไฟล์ Excel สรุปยอดไม่สำเร็จ กรุณาลองใหม่อีกครั้ง")
+
 
 def clear_all():
     confirm = messagebox.askyesno("ยืนยัน", "ต้องการล้างข้อมูลทั้งหมดหรือไม่?")
