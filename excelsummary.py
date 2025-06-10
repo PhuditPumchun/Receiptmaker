@@ -1,197 +1,243 @@
+# File: excelsummary.py
+
 import os
 import platform
 from openpyxl import Workbook
 from openpyxl.styles import Font, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 
-def create_excel_summary(data_list, filename="Summary_Output.xlsx"):
+def create_excel_summary(data_list, transaction_info, filename="Summary_Output.xlsx"):
     """
-    สร้างไฟล์ Excel สรุปยอดจากรายการข้อมูลที่ได้รับมา
-
-    Args:
-        data_list (list): รายการข้อมูลที่ได้จาก Data.list แต่ละรายการเป็น tuple/list
-                          (ชื่อพัสดุ, หน่วยงาน, จำนวน, วันที่ต้องการใช้)
-        filename (str): ชื่อไฟล์ Excel ที่จะสร้าง
+    สร้างไฟล์ Excel สรุปยอดโดยใช้ข้อมูลที่รับมาและใส่สูตรคำนวณ
+    - data_list: รายการพัสดุทั้งหมด
+    - transaction_info: dict ข้อมูลสรุป (วันที่รับ, รับจาก, จ่ายให้)
     """
     try:
         wb = Workbook()
         ws = wb.active
         ws.title = "สรุปยอด"
 
-        # Define thin border for cells
-        thin_border = Border(left=Side(style='thin'),
-                             right=Side(style='thin'),
-                             top=Side(style='thin'),
-                             bottom=Side(style='thin'))
-
-        # Define Thai font styles
+        # --- การตั้งค่า Font และ Border ---
+        thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
         thai_font = Font(name='TH Sarabun New', size=11)
         bold_thai_font = Font(name='TH Sarabun New', size=11, bold=True)
+        center_align = Alignment(horizontal='center', vertical='center')
+        left_align = Alignment(horizontal='left', vertical='center')
+        right_align = Alignment(horizontal='right', vertical='center')
+        top_center_align = Alignment(horizontal='center', vertical='top')
 
-        # --- Table Header Section (based on the image) ---
-        # Merge cells and set main titles
-        ws.merge_cells('B1:L1')
-        ws['B1'] = "บันทึกข้อความ" 
-        ws['B1'].font = bold_thai_font
-        ws['B1'].alignment = Alignment(horizontal='center', vertical='center')
+        # --- ส่วนหัวตาราง ---
+        # "บันทึกข้อความ"
+        ws.merge_cells('A1:L1')
+        ws['A1'] = "บันทึกข้อความ"
+        ws['A1'].font = bold_thai_font
+        ws['A1'].alignment = center_align
 
-        ws.merge_cells('B2:L2')
-        ws['B2'] = "ภาควิชาอุตสาหกรรมเกษตร"
-        ws['B2'].font = bold_thai_font
-        ws['B2'].alignment = Alignment(horizontal='center', vertical='center')
+        # "ภาควิชาอุตสาหกรรมเกษตร"
+        ws.merge_cells('A2:L2')
+        ws['A2'] = "ภาควิชาอุตสาหกรรมเกษตร"
+        ws['A2'].font = bold_thai_font
+        ws['A2'].alignment = center_align
 
-        ws.merge_cells('B3:L3')
-        ws['B3'] = "สรุปยอดปี 2567 ภาควิชาอุตสาหกรรมเกษตร"
-        ws['B3'].font = bold_thai_font
-        ws['B3'].alignment = Alignment(horizontal='center', vertical='center')
-
-        # Headers for main table structure (Row 4)
-        ws['B4'] = "รายการ"
-        ws.merge_cells('B4:B5') # Merge 'รายการ' across 2 rows
-        ws['B4'].font = bold_thai_font # Apply font to the merged cell's top-left cell
-        ws['B4'].alignment = Alignment(horizontal='center', vertical='center') # Center alignment
-
-        ws.merge_cells('C4:E4')
-        ws['C4'] = "รับ"
-        ws['C4'].alignment = Alignment(horizontal='center', vertical='center')
-        ws['C4'].font = bold_thai_font
-
-        ws.merge_cells('F4:H4') # Corrected: 'จ่าย' should span 3 columns
-        ws['F4'] = "จ่าย"
-        ws['F4'].alignment = Alignment(horizontal='center', vertical='center')
-        ws['F4'].font = bold_thai_font
+        # "สรุปยอดพัสดุ"
+        ws.merge_cells('A3:L3')
+        ws['A3'] = "สรุปยอดพัสดุ"
+        ws['A3'].font = bold_thai_font
+        ws['A3'].alignment = center_align
         
-        ws.merge_cells('I4:L4') # Corrected: 'คงเหลือ' should span 4 columns
-        ws['I4'] = "คงเหลือ"
-        ws['I4'].alignment = Alignment(horizontal='center', vertical='center')
-        ws['I4'].font = bold_thai_font
+        # --- Headers หลักและย่อย ---
+        # Merge for main headers
+        ws.merge_cells('A4:A5') # รายการ
+        ws.merge_cells('B4:D4') # รับ
+        ws.merge_cells('E4:G4') # จ่าย
+        ws.merge_cells('H4:L4') # คงเหลือ
 
-        # Headers for Row 5 (sub-headers)
-        # Manually set headers for row 5 based on column mapping for clarity
-        ws['C5'].value = "ใบรับที่"
-        ws['D5'].value = "จำนวน"
-        ws['E5'].value = "บาท"
-        ws['F5'].value = "ใบรับที่"
-        ws['G5'].value = "จำนวน"
-        ws['H5'].value = "บาท"
-        ws['I5'].value = "จำนวน"
-        ws['J5'].value = "บาท"
-        ws['K5'].value = "จำนวน" # Second 'จำนวน' under 'คงเหลือ'
-        ws['L5'].value = "บาท"   # Second 'บาท' under 'คงเหลือ'
+        # Main headers text
+        ws['A4'] = 'รายการ'
+        ws['B4'] = 'รับ'
+        ws['E4'] = 'จ่าย'
+        ws['H4'] = 'คงเหลือ'
 
-        # Apply font and border to all cells in row 5 headers
-        for col_letter in ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L']:
-            cell = ws[f'{col_letter}5']
-            cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-            cell.font = thai_font
-            cell.border = thin_border
+        # Sub-headers for 'รับ'
+        ws['B5'] = 'ใบรับที่'
+        ws['C5'] = 'จำนวน'
+        ws['D5'] = 'บาท'
 
-        # Apply bold font and border to all header cells (rows 4 and 5)
+        # Sub-headers for 'จ่าย'
+        ws['E5'] = 'ใบรับที่'
+        ws['F5'] = 'จำนวน'
+        ws['G5'] = 'บาท'
+
+        # Sub-headers for 'คงเหลือ'
+        ws['H5'] = 'จำนวน'
+        ws['I5'] = 'บาท'
+        ws['J5'] = 'จำนวน' # ช่องที่ 3 ในคงเหลือ
+        ws['K5'] = 'บาท'   # ช่องที่ 4 ในคงเหลือ
+        ws['L5'] = 'แหล่งที่มา' # คอลัมน์ L ในคงเหลือ
+
+        # Apply styles to headers (B4 to L5)
         for row_idx in range(4, 6):
-            for col_idx in range(2, 13): # Columns B to L (index 2 to 12)
+            for col_idx in range(1, 13): # Columns A to L
                 cell = ws.cell(row=row_idx, column=col_idx)
                 cell.font = bold_thai_font
+                cell.alignment = center_align
                 cell.border = thin_border
+        
+        # --- การตั้งค่าความกว้างคอลัมน์ ---
+        col_widths = {
+            'A': 30, 'B': 15, 'C': 10, 'D': 12, # รายการ, รับ(ใบรับที่, จำนวน, บาท)
+            'E': 15, 'F': 10, 'G': 12,          # จ่าย(ใบรับที่, จำนวน, บาท)
+            'H': 10, 'I': 12, 'J': 10, 'K': 12, 'L': 15 # คงเหลือ (จำนวน, บาท, จำนวน, บาท, แหล่งที่มา)
+        }
+        for col_letter, width in col_widths.items():
+            ws.column_dimensions[col_letter].width = width
 
-        # Set column widths
-        ws.column_dimensions['A'].width = 3 # Margin column
-        ws.column_dimensions['B'].width = 25 # รายการ
-        ws.column_dimensions['C'].width = 15 # ใบรับที่ (รับ)
-        ws.column_dimensions['D'].width = 10 # จำนวน (รับ)
-        ws.column_dimensions['E'].width = 12 # บาท (รับ)
-        ws.column_dimensions['F'].width = 15 # ใบรับที่ (จ่าย)
-        ws.column_dimensions['G'].width = 10 # จำนวน (จ่าย)
-        ws.column_dimensions['H'].width = 12 # บาท (จ่าย)
-        ws.column_dimensions['I'].width = 10 # จำนวน (คงเหลือ) - First pair
-        ws.column_dimensions['J'].width = 12 # บาท (คงเหลือ) - First pair
-        ws.column_dimensions['K'].width = 10 # จำนวน (คงเหลือ) - Second pair
-        ws.column_dimensions['L'].width = 12 # บาท (คงเหลือ) - Second pair
-
-        # --- Data Section (mimicking the image structure) ---
-        current_row = 6 # Start data from row 6
-
-        # Fixed header row for 'รับจาก บจก.เอสซีเครื่องคลัง'
-        ws.cell(row=current_row, column=2, value="26-มี.ค.-67 รับจาก บจก.เอสซีเครื่องคลัง").font = thai_font
-        for col_idx in range(2, 13): # Apply border across the row
+        # --- ส่วนของข้อมูล (Data Section) ---
+        current_row = 6
+        
+        # แถว "รับจาก" - ใช้ข้อมูลจาก transaction_info
+        # A6: รับจาก...
+        ws.cell(row=current_row, column=1, value=f"{transaction_info['receipt_date']} รับจาก {transaction_info['received_from']}").font = bold_thai_font
+        ws.cell(row=current_row, column=1).alignment = left_align
+        
+        # Merge cells A6:L6 for the "รับจาก" row
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=12)
+        
+        for col_idx in range(1, 13): # Apply border to the merged cell
             ws.cell(row=current_row, column=col_idx).border = thin_border
+
         current_row += 1
+        
+        start_data_row = current_row
 
-        # Populate data from data_list
-        for idx, item in enumerate(data_list):
-            item_name = item[0] # Product Name
-            quantity = item[2]  # Quantity (e.g., "1 ถุง")
+        # วนลูปเพื่อใส่ข้อมูลแต่ละรายการ
+        for item in data_list:
+            # [0:name, 1:category, 2:amount, 3:date, 4:price, 5:received_from, 6:invoice_no]
+            item_name, _, quantity_text, _, price, _, invoice_no = item
+            
+            # A: รายการ (item_name)
+            ws.cell(row=current_row, column=1, value=f"-{item_name}").font = thai_font
+            ws.cell(row=current_row, column=1).alignment = left_align
 
-            ws.cell(row=current_row, column=2, value=f"-{item_name}").font = thai_font
-            ws.cell(row=current_row, column=3, value="INV67000267").font = thai_font # Placeholder for ใบรับที่ (รับ)
-            ws.cell(row=current_row, column=4, value=quantity).font = thai_font # Quantity for รับ
-            ws.cell(row=current_row, column=5, value="3,668.40").font = thai_font # Placeholder for บาท (รับ)
+            # B: ใบรับที่ (รับ)
+            ws.cell(row=current_row, column=2, value=invoice_no).font = thai_font
+            ws.cell(row=current_row, column=2).alignment = center_align
 
-            ws.cell(row=current_row, column=6, value="-").font = thai_font # ใบรับที่ (จ่าย)
-            ws.cell(row=current_row, column=7, value="-").font = thai_font # จำนวน (จ่าย)
-            ws.cell(row=current_row, column=8, value="-").font = thai_font # บาท (จ่าย)
+            # C: จำนวน (รับ)
+            ws.cell(row=current_row, column=3, value=quantity_text).font = thai_font
+            ws.cell(row=current_row, column=3).alignment = center_align
 
-            ws.cell(row=current_row, column=9, value=quantity).font = thai_font # จำนวน (คงเหลือ) - First pair
-            ws.cell(row=current_row, column=10, value="3,668.40").font = thai_font # บาท (คงเหลือ) - First pair
-            ws.cell(row=current_row, column=11, value="").font = thai_font # Second คงเหลือ quantity
-            ws.cell(row=current_row, column=12, value="").font = thai_font # Second คงเหลือ baht
+            # D: บาท (รับ)
+            cell_price_received = ws.cell(row=current_row, column=4, value=price)
+            cell_price_received.font = thai_font
+            cell_price_received.number_format = '#,##0.00'
+            cell_price_received.alignment = right_align
+            
+            # E, F, G (จ่าย) - เว้นว่างสำหรับกรอกข้อมูล
+            ws.cell(row=current_row, column=5, value="").font = thai_font
+            ws.cell(row=current_row, column=5).alignment = center_align
+            ws.cell(row=current_row, column=6, value="").font = thai_font
+            ws.cell(row=current_row, column=6).alignment = center_align
+            cell_paid_amount = ws.cell(row=current_row, column=7, value="")
+            cell_paid_amount.font = thai_font
+            cell_paid_amount.number_format = '#,##0.00'
+            cell_paid_amount.alignment = right_align
 
-            # Apply border to data cells
-            for col_idx in range(2, 13):
+            # H, I, J, K (คงเหลือ) - ใส่สูตร Excel
+            # จำนวนคงเหลือ (H) - ยังไม่มีสูตรที่ชัดเจนจากรูป ให้ผู้ใช้กรอกเอง หรือคำนวณง่ายๆ (รับ - จ่าย)
+            ws.cell(row=current_row, column=8, value=f"=C{current_row}-F{current_row}").font = thai_font
+            ws.cell(row=current_row, column=8).alignment = center_align
+
+            # บาทคงเหลือ (I) - สูตร: บาทรับ - บาทจ่าย
+            cell_balance_price = ws.cell(row=current_row, column=9, value=f"=D{current_row}-G{current_row}")
+            cell_balance_price.font = thai_font
+            cell_balance_price.number_format = '#,##0.00'
+            cell_balance_price.alignment = right_align
+            
+            # ช่องว่าง (J, K) - ว่างไว้ตามรูป
+            ws.cell(row=current_row, column=10, value="").font = thai_font
+            ws.cell(row=current_row, column=10).alignment = center_align
+            ws.cell(row=current_row, column=11, value="").font = thai_font
+            ws.cell(row=current_row, column=11).alignment = right_align
+
+            # L: แหล่งที่มา - ในรูปแรกไม่มี แต่ในรูป Page 1 มี อาจจะเพิ่ม หรือเว้นว่าง
+            ws.cell(row=current_row, column=12, value="").font = thai_font
+            ws.cell(row=current_row, column=12).alignment = left_align
+
+
+            for col_idx in range(1, 13): # Apply border to all cells in the row
                 ws.cell(row=current_row, column=col_idx).border = thin_border
             
             current_row += 1
 
-        # Additional summary row: "จ่ายไป ผศ.ดร.ศิริมา จิราราชะ"
-        # This row appears after all items are listed
-        ws.cell(row=current_row + 1, column=2, value="จ่ายไป ผศ.ดร.ศิริมา จิราราชะ").font = thai_font
-        ws.cell(row=current_row + 1, column=3, value="-").font = thai_font
-        ws.cell(row=current_row + 1, column=4, value="-").font = thai_font
-        ws.cell(row=current_row + 1, column=5, value="-").font = thai_font
-        ws.cell(row=current_row + 1, column=6, value="1 รก.").font = thai_font # Placeholder for 'จ่าย'
-        ws.cell(row=current_row + 1, column=7, value="3,668.40").font = thai_font # Placeholder for 'จ่าย'
-        ws.cell(row=current_row + 1, column=8, value="").font = thai_font
-        ws.cell(row=current_row + 1, column=9, value="").font = thai_font
-        ws.cell(row=current_row + 1, column=10, value="").font = thai_font
-        ws.cell(row=current_row + 1, column=11, value="").font = thai_font
-        ws.cell(row=current_row + 1, column=12, value="").font = thai_font
-
-        # Apply border to this final summary row
-        for col_idx in range(2, 13):
-            ws.cell(row=current_row + 1, column=col_idx).border = thin_border
+        end_data_row = current_row - 1
         
-        # Save the workbook
+        # --- แถวสรุปรวม (Total) ---
+        ws.cell(row=current_row, column=1, value="รวม").font = bold_thai_font
+        ws.cell(row=current_row, column=1).alignment = right_align
+        
+        # สูตร SUM สำหรับคอลัมน์ "บาท (รับ)" (D)
+        total_received_cell_d = ws.cell(row=current_row, column=4)
+        total_received_cell_d.font = bold_thai_font
+        total_received_cell_d.value = f"=SUM(D{start_data_row}:D{end_data_row})"
+        total_received_cell_d.number_format = '#,##0.00'
+        total_received_cell_d.alignment = right_align
+
+        # สูตร SUM สำหรับคอลัมน์ "บาท (จ่าย)" (G)
+        total_paid_cell_g = ws.cell(row=current_row, column=7)
+        total_paid_cell_g.font = bold_thai_font
+        total_paid_cell_g.value = f"=SUM(G{start_data_row}:G{end_data_row})"
+        total_paid_cell_g.number_format = '#,##0.00'
+        total_paid_cell_g.alignment = right_align
+
+        # สูตร SUM สำหรับคอลัมน์ "บาท (คงเหลือ)" (I)
+        total_balance_cell_i = ws.cell(row=current_row, column=9)
+        total_balance_cell_i.font = bold_thai_font
+        total_balance_cell_i.value = f"=SUM(I{start_data_row}:I{end_data_row})" 
+        total_balance_cell_i.number_format = '#,##0.00'
+        total_balance_cell_i.alignment = right_align
+        
+        # Merge cells for "รวม" (A to C)
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=3)
+
+        # Apply border to the "รวม" row
+        for col_idx in range(1, 13):
+            ws.cell(row=current_row, column=col_idx).border = thin_border
+        current_row += 1 # เพิ่มบรรทัดว่างหลังรวม
+
+        # --- แถวสรุป "จ่ายไป" ---
+        current_row += 1 # เว้น 1 บรรทัดตามรูป
+        # A: จ่ายไป...
+        ws.cell(row=current_row, column=1, value=f"จ่ายไป {transaction_info['paid_to']}").font = bold_thai_font
+        ws.cell(row=current_row, column=1).alignment = left_align
+        
+        # E: "1 รก."
+        ws.cell(row=current_row, column=5, value="1 รก.").font = bold_thai_font
+        ws.cell(row=current_row, column=5).alignment = center_align
+
+        # G: ค่าเงิน
+        paid_amount_cell_g = ws.cell(row=current_row, column=7)
+        paid_amount_cell_g.font = bold_thai_font
+        paid_amount_cell_g.value = f"=G{end_data_row + 1}" # อ้างอิงจากช่องรวมยอดจ่าย (G)
+        paid_amount_cell_g.number_format = '#,##0.00'
+        paid_amount_cell_g.alignment = right_align
+
+        # Merge cells A to D for "จ่ายไป" text
+        ws.merge_cells(start_row=current_row, start_column=1, end_row=current_row, end_column=4)
+
+        # Merge cells for "1 รก." (E to F)
+        ws.merge_cells(start_row=current_row, start_column=5, end_row=current_row, end_column=6)
+
+        # Apply border to the "จ่ายไป" row
+        for col_idx in range(1, 13):
+            ws.cell(row=current_row, column=col_idx).border = thin_border
+        
+        # --- Save the workbook ---
         wb.save(filename)
-        print(f"✅ Excel file '{filename}' created successfully!")
+        print(f"✅ Excel file '{filename}' created successfully with formulas!")
         if platform.system() == "Windows":
             os.startfile(filename)
         return True
     except Exception as e:
         print(f"❌ Error creating Excel file: {e}")
-        # Return False to indicate an error to the UI
         return False
-
-# Example usage (for testing this file directly)
-if __name__ == '__main__':
-    # This block allows you to run excelsummary.py directly for testing.
-    # It creates a mock Data class if Backend/Data.py is not in the same directory.
-    try:
-        from Backend import Data
-    except ImportError:
-        print("Backend/Data.py not found. Using a mock Data class for testing.")
-        class Data:
-            def __init__(self):
-                self.list = []
-            def appendlist(self, name, list3d, amount, date):
-                self.list.append((name, list3d, amount, date))
-            def sorted(self): # Added sorted method for completeness
-                pass # Not needed for this Excel function, but good for mock
-
-    # Create dummy data (can be 1 or multiple items)
-    mock_data_instance = Data()
-    mock_data_instance.appendlist("ถั่วเขียวเราะเปลือก", "ว.งานบ้านงานครัว", "1 ถุง", "มิ.ย.68")
-    mock_data_instance.appendlist("ถั่วแดงหลวง", "ว.งานบ้านงานครัว", "8 ถุง", "")
-    mock_data_instance.appendlist("ใบชา", "ว.งานบ้านงานครัว", "2 กล่อง", "")
-    # You can comment out lines above to test with only 1 item
-    # mock_data_instance.appendlist("สินค้าทดสอบเดียว", "หน่วยงานทดสอบ", "10 ชิ้น", "ก.ค.68")
-
-    create_excel_summary(mock_data_instance.list)
