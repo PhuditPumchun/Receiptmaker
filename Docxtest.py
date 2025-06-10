@@ -116,11 +116,11 @@ def save_doc_with_retry(doc, filename="Sleeve1_Output.docx", max_retries=3):
     return False
 
 Datum = Data()
-Datum.appendlist("ถั่วเขียวเราะเปลือก", "ว.งานบ้านงานครัว", "1 ถุง", "มิ.ย.68")
-Datum.appendlist("ถั่วแดงหลวง", "ว.งานบ้านงานครัว", "8 ถุง", "")
-Datum.appendlist("ใบชา", "ว.งานบ้านงานครัว", "2 กล่อง", "")
-Datum.appendlist("ถุงใส ขนาด 20x30 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", "")
-Datum.appendlist("ถุงตัดตรง LLDPE ขนาด 15x26 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", "")
+# Datum.appendlist("ถั่วเขียวเราะเปลือก", "ว.งานบ้านงานครัว", "1 ถุง", "มิ.ย.68")
+# Datum.appendlist("ถั่วแดงหลวง", "ว.งานบ้านงานครัว", "8 ถุง", "")
+# Datum.appendlist("ใบชา", "ว.งานบ้านงานครัว", "2 กล่อง", "")
+# Datum.appendlist("ถุงใส ขนาด 20x30 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", "")
+# Datum.appendlist("ถุงตัดตรง LLDPE ขนาด 15x26 นิ้ว", "ว.งานบ้านงานครัว", "2 แพ็ค", "")
 
 def Sleeve1(Data, title, runNumber, bodyText1):
     doc = Document()
