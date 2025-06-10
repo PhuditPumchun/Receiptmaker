@@ -1,10 +1,11 @@
-# File: ui.py (Updated)
+# File: ui.py
 
 import tkinter as tk
 from tkinter import ttk, messagebox
 from Backend import Data 
 from Docxtest import Sleeve1 # สมมติว่ามีไฟล์นี้อยู่
 from excelsummary import create_excel_summary
+from datetime import datetime # สำหรับวันที่เริ่มต้นใน dialog
 
 data = Data()
 
@@ -13,18 +14,19 @@ def add_item():
     name = entry_name.get()
     category = entry_category.get()
     amount = entry_amount.get()
-    date = entry_date.get()
+    date_needed = entry_date.get() # เปลี่ยนชื่อตัวแปรให้ชัดเจนขึ้น
     price = entry_price.get()
     received_from = entry_received_from.get()
     invoice_no = entry_invoice_no.get()
+    purchase_date = entry_purchase_date.get() # เพิ่มวันที่ซื้อเข้ามา
 
     # ตรวจสอบว่ากรอกข้อมูลสำคัญครบหรือไม่
-    if not all([name, category, amount, price, received_from, invoice_no]):
-        messagebox.showwarning("ข้อมูลไม่ครบ", "กรุณากรอกข้อมูลให้ครบถ้วน\n(ชื่อ, หมวดหมู่, จำนวน, ราคา, รับจาก, ใบรับที่)")
+    if not all([name, category, amount, price, received_from, invoice_no, purchase_date]): # เพิ่ม purchase_date
+        messagebox.showwarning("ข้อมูลไม่ครบ", "กรุณากรอกข้อมูลให้ครบถ้วน\n(ชื่อ, หมวดหมู่, จำนวน, ราคา, รับจาก, ใบรับที่, วันที่ซื้อ)")
         return
 
     # เรียกใช้ appendlist ที่มี parameters ครบ
-    data.appendlist(name, category, amount, date, price, received_from, invoice_no)
+    data.appendlist(name, category, amount, date_needed, price, received_from, invoice_no, purchase_date) # ส่ง purchase_date ไปด้วย
     refresh_table()
     clear_fields()
 
@@ -47,6 +49,7 @@ def clear_fields():
     entry_price.delete(0, tk.END)
     entry_received_from.delete(0, tk.END)
     entry_invoice_no.delete(0, tk.END)
+    entry_purchase_date.delete(0, tk.END) # ล้างช่องวันที่ซื้อด้วย
 
 def sort_data():
     data.sorted()
@@ -157,31 +160,45 @@ def open_create_dialog():
     btn_create = tk.Button(button_dialog_frame, text="สร้างบันทึกข้อความ", command=on_create)
     btn_create.pack(side=tk.LEFT, padx=5)
 
-def create_excel_directly():
+
+def open_excel_dialog():
     """
-    *** ฟังก์ชันใหม่: สร้างไฟล์ Excel ทันทีโดยไม่มีหน้าต่างถามข้อมูล ***
+    ฟังก์ชันสำหรับเปิดหน้าต่างกรอกข้อมูล transaction_info ก่อนสร้าง Excel
     """
     if not data.list:
         messagebox.showwarning("ไม่มีข้อมูล", "กรุณาเพิ่มรายการพัสดุในตารางก่อนสร้างไฟล์ Excel")
         return
 
-    try:
-        # สร้างข้อมูลสรุปโดยอัตโนมัติ
-        transaction_info = {
-            "receipt_date": data.day,              # ใช้วันที่ปัจจุบัน
-            "received_from": data.list[0][5],      # ใช้ข้อมูล "รับจาก" ของรายการแรก
-            "paid_to": "ผศ.ดร.ศิริมา จิราราชะ"       # ใช้ค่าเริ่มต้น
-        }
-    except IndexError:
-        messagebox.showerror("เกิดข้อผิดพลาด", "ไม่สามารถดึงข้อมูล 'รับจาก' ได้\nกรุณาตรวจสอบว่ามีรายการในตารางอย่างน้อย 1 รายการ")
-        return
+    excel_dialog = tk.Toplevel(root)
+    excel_dialog.title("กรอกข้อมูลสำหรับ Excel สรุปยอด")
+    excel_dialog.geometry("400x250")
 
-    # เรียกใช้ฟังก์ชันสร้าง Excel
-    success = create_excel_summary(data.list, transaction_info)
-    if success:
-        messagebox.showinfo("สำเร็จ", "สร้างไฟล์ Excel สรุปยอดเรียบร้อยแล้ว")
-    else:
-        messagebox.showerror("ไม่สำเร็จ", "สร้างไฟล์ Excel สรุปยอดไม่สำเร็จ กรุณาตรวจสอบข้อผิดพลาด")
+    # จ่ายให้
+    tk.Label(excel_dialog, text="จ่ายให้:").pack(anchor="w", padx=10, pady=(10,0))
+    entry_paid_to = tk.Entry(excel_dialog, width=50)
+    entry_paid_to.insert(0, "ผศ.ดร.ศิริมา จิราราชะ") # ค่าเริ่มต้น
+    entry_paid_to.pack(padx=10, pady=5)
+
+    def on_create_excel():
+        paid_to = entry_paid_to.get().strip()
+
+        if not all([paid_to]):
+            messagebox.showwarning("ข้อมูลไม่ครบ", "กรุณากรอกข้อมูลสำหรับ Excel ให้ครบทุกช่อง")
+            return
+        
+        transaction_info = {
+            "paid_to": paid_to
+        }
+
+        success = create_excel_summary(data.list, transaction_info)
+        if success:
+            messagebox.showinfo("สำเร็จ", "สร้างไฟล์ Excel สรุปยอดเรียบร้อยแล้ว")
+            excel_dialog.destroy()
+        else:
+            messagebox.showerror("ไม่สำเร็จ", "สร้างไฟล์ Excel สรุปยอดไม่สำเร็จ กรุณาตรวจสอบข้อผิดพลาด")
+
+    btn_create_excel = tk.Button(excel_dialog, text="สร้าง Excel", command=on_create_excel)
+    btn_create_excel.pack(pady=10)
 
 
 def clear_all():
@@ -192,7 +209,7 @@ def clear_all():
 # --- GUI Setup ---
 root = tk.Tk()
 root.title("แบบฟอร์มบันทึกพัสดุ")
-root.geometry("1200x700")
+root.geometry("1400x700") # เพิ่มความกว้างรองรับคอลัมน์ใหม่
 
 form_frame = tk.Frame(root)
 form_frame.pack(pady=10)
@@ -222,9 +239,15 @@ tk.Label(form_frame, text="รับจากใคร").grid(row=2, column=2, s
 entry_received_from = tk.Entry(form_frame, width=40)
 entry_received_from.grid(row=2, column=3, padx=5, pady=2)
 
-tk.Label(form_frame, text="ใบรับที่ (Invoice No.)").grid(row=3, column=2, sticky="w", padx=5, pady=2)
+tk.Label(form_frame, text="ใบรับที่ (Invoice No.)").grid(row=3, column=0, sticky="w", padx=5, pady=2)
 entry_invoice_no = tk.Entry(form_frame, width=40)
-entry_invoice_no.grid(row=3, column=3, padx=5, pady=2)
+entry_invoice_no.grid(row=3, column=1, padx=5, pady=2)
+
+# --- เพิ่มช่อง วันที่ซื้อ ---
+tk.Label(form_frame, text="วันที่ซื้อ (Purchase Date)").grid(row=3, column=2, sticky="w", padx=5, pady=2)
+entry_purchase_date = tk.Entry(form_frame, width=40)
+# entry_purchase_date.insert(0, data.format_thai_date(datetime.today())) # บรรทัดนี้ถูกคอมเมนต์ออกเพื่อไม่ให้มีค่าเริ่มต้น
+entry_purchase_date.grid(row=3, column=3, padx=5, pady=2)
 
 # --- Buttons ---
 button_frame = tk.Frame(root)
@@ -235,23 +258,23 @@ tk.Button(button_frame, text="เรียงตามจำนวน", width=20
 tk.Button(button_frame, text="ลบรายการที่เลือก", width=20, command=delete_selected_item).grid(row=0, column=2, padx=5, pady=5)
 
 tk.Button(button_frame, text="สร้างบันทึกข้อความ", width=20, command=open_create_dialog).grid(row=1, column=0, padx=5, pady=5)
-# *** แก้ไข command ของปุ่มนี้ ให้เรียกใช้ฟังก์ชันใหม่ ***
-tk.Button(button_frame, text="สร้าง Excel สรุปยอด", width=20, command=create_excel_directly).grid(row=1, column=1, padx=5, pady=5)
+tk.Button(button_frame, text="สร้าง Excel สรุปยอด", width=20, command=open_excel_dialog).grid(row=1, column=1, padx=5, pady=5)
 tk.Button(button_frame, text="ล้างข้อมูลทั้งหมด", width=20, fg="red", command=clear_all).grid(row=1, column=2, pady=5)
 
 # --- Treeview (Table Display) ---
-columns = ("ชื่อพัสดุ", "หมวดหมู่", "จำนวน", "วันที่ต้องการใช้", "ราคา (บาท)", "รับจาก", "ใบรับที่")
+columns = ("ชื่อพัสดุ", "หมวดหมู่", "จำนวน", "วันที่ต้องการใช้", "ราคา (บาท)", "รับจาก", "ใบรับที่", "วันที่ซื้อ") # เพิ่มวันที่ซื้อ
 tree = ttk.Treeview(root, columns=columns, show="headings", height=15)
 
 for col in columns:
     tree.heading(col, text=col)
-    tree.column(col, anchor="w", width=150)
+    tree.column(col, anchor="w", width=120) # ปรับความกว้างเริ่มต้น
 
-tree.column("ชื่อพัสดุ", width=250, anchor="w")
-tree.column("จำนวน", width=100, anchor="center")
+tree.column("ชื่อพัสดุ", width=200, anchor="w")
+tree.column("จำนวน", width=80, anchor="center")
 tree.column("ราคา (บาท)", width=100, anchor="e") # e = align right
-tree.column("หมวดหมู่", width=180, anchor="w")
-tree.column("ใบรับที่", width=120, anchor="center")
+tree.column("หมวดหมู่", width=150, anchor="w")
+tree.column("ใบรับที่", width=100, anchor="center")
+tree.column("วันที่ซื้อ", width=100, anchor="center") # ตั้งค่าสำหรับวันที่ซื้อ
 
 tree.pack(fill="both", expand=True, padx=10, pady=10)
 
