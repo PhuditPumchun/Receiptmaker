@@ -6,10 +6,52 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, Border, Side, Alignment
 from openpyxl.utils import get_column_letter
 from collections import defaultdict
+import time 
+import re # เพิ่มการ import re
+
+# ไลบรารีสำหรับควบคุม Excel COM (Windows เท่านั้น)
+import win32com.client
+import pythoncom
 
 # นำเข้าคลาส Data จาก backend.py
 # สมมติว่ามีไฟล์ backend.py ที่มีคลาส Data และเมธอด parse_amount และ format_thai_date
 from Backend import Data
+
+# ฟังก์ชันใหม่: ปิดเฉพาะแท็บไฟล์ Excel ที่เปิดอยู่ (ถ้ามี)
+def close_excel_file_if_open(filename):
+    pythoncom.CoInitialize()  # เรียก COM สำหรับ thread นี้
+    try:
+        excel = win32com.client.Dispatch("Excel.Application")
+        for wb in excel.Workbooks:
+            # เปรียบเทียบชื่อไฟล์แบบไม่สนใจ case
+            # ใช้ os.path.basename เพื่อให้แน่ใจว่าเปรียบเทียบแค่ชื่อไฟล์ ไม่รวมพาธเต็ม
+            if os.path.basename(filename).lower() == os.path.basename(wb.FullName).lower():
+                print(f"📄 พบไฟล์ {filename} ที่เปิดอยู่ใน Excel — กำลังปิดแท็บ")
+                wb.Close(False)  # False = ปิดโดยไม่บันทึกซ้ำ
+                return True
+    except Exception as e:
+        print("❌ ไม่สามารถตรวจสอบหรือปิดเอกสาร Excel:", e)
+    return False
+
+# ฟังก์ชันใหม่: บันทึกไฟล์ Excel พร้อม retry และปิดแท็บ Excel เฉพาะไฟล์นั้นถ้ายังเปิดอยู่
+def save_excel_with_retry(wb, filename="Summary_Output.xlsx", max_retries=3):
+    for attempt in range(max_retries):
+        try:
+            wb.save(filename)
+            print(f"✅ {filename} created successfully!")
+            if platform.system() == "Windows":
+                os.startfile(filename)
+            return True
+        except PermissionError:
+            print(f"⚠️ ไม่สามารถบันทึกไฟล์ {filename} ได้ อาจยังเปิดอยู่ใน Excel")
+            print("🔄 กำลังพยายามปิดเฉพาะแท็บของไฟล์นั้น...")
+            closed = close_excel_file_if_open(filename)
+            if not closed:
+                print("⏳ รอ 2 วินาทีแล้วลองใหม่...")
+            time.sleep(2)
+    print("❌ ไม่สามารถบันทึกไฟล์ได้ กรุณาปิดไฟล์ด้วยตนเองแล้วลองใหม่อีกครั้ง")
+    return False
+
 
 def create_excel_summary(data_list, transaction_info, filename="Summary_Output.xlsx"):
     """
@@ -97,49 +139,54 @@ def create_excel_summary(data_list, transaction_info, filename="Summary_Output.x
 
         current_row = 6 # เริ่มต้นที่แถว 6 สำหรับข้อมูล
 
-        # --- จัดกลุ่มข้อมูลตาม 'received_from' ---
+        # --- จัดกลุ่มข้อมูลตาม (purchase_date, received_from, invoice_no) ---
+        # ต้องเรียงลำดับข้อมูลก่อน เพื่อให้กลุ่มที่เหมือนกันอยู่ติดกันและแสดงผลตามลำดับวันที่
+        data_list_sorted = sorted(data_list, key=lambda x: (x[7], x[5], x[6])) 
+        
         grouped_data = defaultdict(list)
-        data_handler_instance = Data() # สร้าง instance ของ Data เพื่อใช้ parse_amount และ format_thai_date
-        for item in data_list:
-            received_from_company = item[5] # Index 5 คือ received_from
-            grouped_data[received_from_company].append(item)
+        data_handler_instance = Data() 
+        for item in data_list_sorted: # ใช้อันที่เรียงแล้ว
+            # ใช้ tuple (วันที่, บริษัท, ใบรับที่) เป็น key ในการจัดกลุ่ม
+            group_key = (item[7], item[5], item[6]) 
+            grouped_data[group_key].append(item)
 
         # ตัวแปรสำหรับเก็บยอดคงเหลือสะสม
         cumulative_balance_qty = 0
         cumulative_balance_baht = 0.0
 
-        for company_name, items_for_company in grouped_data.items():
+        # วนลูปผ่านกลุ่มข้อมูลที่จัดใหม่ (ซึ่งตอนนี้ key คือ (วันที่, บริษัท, ใบรับที่))
+        for group_key, items_in_group in grouped_data.items():
+            purchase_date, company_name, invoice_no = group_key 
+
             # แถว "รับจาก"
-            # A: วันที่ (ใช้ purchase_date แทน date_needed)
-            first_item_date = items_for_company[0][7] if items_for_company else "" # เปลี่ยนเป็น index 7 สำหรับ purchase_date
-            ws.cell(row=current_row, column=1, value=first_item_date).font = bold_thai_font
+            # A: วันที่ (ใช้ purchase_date จาก group_key)
+            ws.cell(row=current_row, column=1, value=purchase_date).font = bold_thai_font
             ws.cell(row=current_row, column=1).alignment = center_align
 
             # B: รับจากบริษัท
             ws.cell(row=current_row, column=2, value=f"รับจาก {company_name}").font = bold_thai_font
             ws.cell(row=current_row, column=2).alignment = left_align
             
-            # C: ใบรับที่ (ของรายการแรกในกลุ่ม)
-            first_invoice_no = items_for_company[0][6] if items_for_company else "" # invoice_no คือ index 6
-            ws.cell(row=current_row, column=3, value=first_invoice_no).font = bold_thai_font
+            # C: ใบรับที่ (ใช้ invoice_no จาก group_key)
+            ws.cell(row=current_row, column=3, value=invoice_no).font = bold_thai_font
             ws.cell(row=current_row, column=3).alignment = center_align
 
-            # D: จำนวน (จำนวนรายการที่มี) - เพิ่ม " รก."
-            item_count_for_company = len(items_for_company) # จำนวนรายการของบริษัทนี้
-            ws.cell(row=current_row, column=4, value=f"{item_count_for_company} รก.").font = bold_thai_font
+            # D: จำนวน (จำนวนรายการในกลุ่มนี้) - เพิ่ม " รก."
+            item_count_for_group = len(items_in_group) 
+            ws.cell(row=current_row, column=4, value=f"{item_count_for_group} รก.").font = bold_thai_font
             ws.cell(row=current_row, column=4).alignment = center_align
 
             # E: บาท (รวมเงินของรายการในกลุ่มนี้) - คำนวณ จำนวน * ราคา
-            total_price_for_company_E = 0
-            for item in items_for_company:
-                quantity_numeric = data_handler_instance.parse_amount(item[2]) # item[2] คือ amount (เช่น "10 ด้าม")
-                price_per_item = item[4] # item[4] คือ price (เช่น 15.00)
-                total_price_for_company_E += (quantity_numeric * price_per_item)
+            total_price_for_group_E = 0
+            for item in items_in_group:
+                quantity_numeric = data_handler_instance.parse_amount(item[2]) 
+                price_per_item = item[4] 
+                total_price_for_group_E += (quantity_numeric * price_per_item)
 
-            cell_company_total_price_E = ws.cell(row=current_row, column=5, value=total_price_for_company_E)
-            cell_company_total_price_E.font = bold_thai_font
-            cell_company_total_price_E.number_format = '#,##0.00'
-            cell_company_total_price_E.alignment = right_align
+            cell_group_total_price_E = ws.cell(row=current_row, column=5, value=total_price_for_group_E)
+            cell_group_total_price_E.font = bold_thai_font
+            cell_group_total_price_E.number_format = '#,##0.00'
+            cell_group_total_price_E.alignment = right_align
 
             # F, G, H (จ่าย) - ใส่เครื่องหมาย "-"
             ws.cell(row=current_row, column=6, value="-").font = thai_font
@@ -151,30 +198,34 @@ def create_excel_summary(data_list, transaction_info, filename="Summary_Output.x
 
 
             # I: จำนวน (คงเหลือ) - ยอดสะสมจำนวน
-            cumulative_balance_qty += item_count_for_company
+            cumulative_balance_qty += item_count_for_group
             ws.cell(row=current_row, column=9, value=f"{cumulative_balance_qty} รก.").font = bold_thai_font
             ws.cell(row=current_row, column=9).alignment = center_align
 
             # J: บาท (คงเหลือ) - ยอดสะสมบาท
-            cumulative_balance_baht += total_price_for_company_E
-            cell_company_total_price_J = ws.cell(row=current_row, column=10, value=cumulative_balance_baht) 
-            cell_company_total_price_J.font = bold_thai_font
-            cell_company_total_price_J.number_format = '#,##0.00'
-            cell_company_total_price_J.alignment = right_align
+            cumulative_balance_baht += total_price_for_group_E
+            cell_group_total_price_J = ws.cell(row=current_row, column=10, value=cumulative_balance_baht) 
+            cell_group_total_price_J.font = bold_thai_font
+            cell_group_total_price_J.number_format = '#,##0.00'
+            cell_group_total_price_J.alignment = right_align
 
             # Apply border to the entire row
             for col_idx in range(1, 11): # Columns A to J
                 ws.cell(row=current_row, column=col_idx).border = thin_border
             current_row += 1
             
-            for item in items_for_company:
+            # รายละเอียดรายการย่อยภายใต้แต่ละกลุ่ม (invoice)
+            for item in items_in_group:
                 # [0:name, 1:category, 2:amount, 3:date_needed, 4:price, 5:received_from, 6:invoice_no, 7: purchase_date]
                 item_name = item[0]
                 amount_str = item[2] # เช่น "10 ด้าม"
                 price_per_item = item[4] # เช่น 15.00
                 
+                # แยกตัวเลขและหน่วยนับออกจากกันอย่างถูกต้อง
                 quantity_numeric = data_handler_instance.parse_amount(amount_str)
-                unit = ''.join(filter(str.isalpha, amount_str)) # ดึงส่วนที่เป็นตัวอักษรของหน่วยนับ
+                # ใช้ regex เพื่อดึงส่วนที่เป็นตัวอักษรทั้งหมด (รวมสระและวรรณยุกต์)
+                match = re.search(r'(\D+)$', amount_str.strip()) # หาตัวอักษรที่อยู่ท้ายสุดของสตริง
+                unit = match.group(1).strip() if match else "" # ถ้าเจอให้ดึงมา ถ้าไม่เจอให้เป็นสตริงว่าง
 
                 total_item_price = quantity_numeric * price_per_item
 
@@ -228,10 +279,6 @@ def create_excel_summary(data_list, transaction_info, filename="Summary_Output.x
         ws.cell(row=current_row, column=4, value="").font = thai_font
         ws.cell(row=current_row, column=5, value="").font = thai_font
 
-        # # F: ใบรับที่ (เปลี่ยนเป็น "รวมจ่าย")
-        # ws.cell(row=current_row, column=6, value="รวมจ่าย").font = bold_thai_font
-        # ws.cell(row=current_row, column=6).alignment = center_align
-
         # G: จำนวน (ใช้ค่าจาก cumulative_balance_qty ล่าสุด และเพิ่ม " รก." เข้าไปด้วย)
         ws.cell(row=current_row, column=7, value=f"{cumulative_balance_qty} รก.").font = bold_thai_font
         ws.cell(row=current_row, column=7).alignment = center_align
@@ -249,62 +296,60 @@ def create_excel_summary(data_list, transaction_info, filename="Summary_Output.x
             ws.cell(row=current_row, column=col_idx).border = thin_border
         
         # --- Save the workbook ---
-        wb.save(filename)
-        print(f"✅ Excel file '{filename}' created successfully!")
-        if platform.system() == "Windows":
-            os.startfile(filename)
-        return True
+        return save_excel_with_retry(wb, filename)
     except Exception as e:
         print(f"❌ Error creating Excel file: {e}")
         return False
 
 def main():
-    """
-    ฟังก์ชันหลักสำหรับสร้างข้อมูลตัวอย่างและเรียกใช้ create_excel_summary
-    โดยมีข้อมูลจาก 3 บริษัท ใน 3 วันที่แตกต่างกัน
-    """
-    print("🚀 กำลังสร้างข้อมูลตัวอย่างและไฟล์ Excel สรุปยอด...")
-
     # สร้าง instance ของคลาส Data
     data_handler = Data()
 
-    # --- ข้อมูลตัวอย่างสำหรับ 3 วันที่แตกต่างกัน และ 3 บริษัท ---
+    # --- ข้อมูลตัวอย่างที่มี บริษัทซ้ำ วันซ้ำ แต่คนละใบรับ ---
 
     # วันที่ 10/มิ.ย./68
-    date_1 = "10/มิ.ย./68"
+    date_a = "10 มิ.ย.68"
     company_a = "บริษัท สยามพัฒนา จำกัด"
     company_b = "ร้านค้าส่งอุปกรณ์"
-    company_c = "บริษัท เครื่องเขียนไทย"
 
-    data_handler.appendlist("ปากกาเคมี", "วัสดุสำนักงาน", "5 ด้าม", date_1, 20.00, company_a, "INV_A_001",date_1)
-    data_handler.appendlist("กระดาษโน้ต", "วัสดุสำนักงาน", "3 เล่ม", date_1, 15.00, company_a, "INV_A_001",date_1)
-    data_handler.appendlist("เทปใส", "วัสดุสำนักงาน", "2 ม้วน", date_1, 10.00, company_b, "INV_B_001",date_1)
-    data_handler.appendlist("กรรไกร", "วัสดุสำนักงาน", "1 อัน", date_1, 35.00, company_c, "INV_C_001",date_1)
+    # ใบรับที่ INV_A_001
+    data_handler.appendlist("ปากกาเคมี", "วัสดุสำนักงาน", "5 ด้าม", date_a, 20.00, company_a, "INV_A_001", date_a)
+    data_handler.appendlist("กระดาษโน้ต", "วัสดุสำนักงาน", "3 เล่ม", date_a, 15.00, company_a, "INV_A_001", date_a)
+    
+    # ใบรับที่ INV_A_002 (บริษัทเดียวกัน วันเดียวกัน แต่คนละใบรับ)
+    data_handler.appendlist("แฟ้มเอกสาร", "วัสดุสำนักงาน", "10 อัน", date_a, 25.00, company_a, "INV_A_002", date_a)
+    data_handler.appendlist("ยางลบ", "วัสดุสำนักงาน", "5 ก้อน", date_a, 5.00, company_a, "INV_A_002", date_a)
+
+    # ใบรับที่ INV_B_001
+    data_handler.appendlist("เทปใส", "วัสดุสำนักงาน", "2 ม้วน", date_a, 10.00, company_b, "INV_B_001", date_a)
+    
+    # ใบรับที่ INV_B_002 (บริษัทเดียวกัน วันเดียวกัน แต่คนละใบรับ)
+    data_handler.appendlist("กาวแท่ง", "วัสดุสำนักงาน", "5 แท่ง", date_a, 8.00, company_b, "INV_B_002", date_a)
+    data_handler.appendlist("ไม้บรรทัด", "วัสดุสำนักงาน", "3 อัน", date_a, 12.00, company_b, "INV_B_002", date_a)
+
 
     # วันที่ 15/มิ.ย./68
-    date_2 = "15/มิ.ย./68"
-    company_d = "บริษัท วัสดุก่อสร้าง"
-    company_e = "ร้านอุปกรณ์ไฟฟ้า"
-    company_f = "บริษัท เฟอร์นิเจอร์ดี"
+    date_b = "15 มิ.ย. 68"
+    company_c = "บริษัท วัสดุก่อสร้าง"
+    company_d = "บริษัท สยามพัฒนา จำกัด" # บริษัทซ้ำจาก date_a แต่คนละวัน คนละใบรับ
 
-    data_handler.appendlist("หลอดไฟ LED", "วัสดุไฟฟ้า", "10 หลอด", date_2, 45.00, company_d, "INV_D_001",date_2)
-    data_handler.appendlist("สายไฟ", "วัสดุไฟฟ้า", "1 ม้วน", date_2, 200.00, company_d, "INV_D_001",date_2)
-    data_handler.appendlist("ไขควงชุด", "วัสดุช่าง", "1 ชุด", date_2, 150.00, company_e, "INV_E_001",date_2)
-    data_handler.appendlist("เก้าอี้สำนักงาน", "ครุภัณฑ์", "1 ตัว", date_2, 1200.00, company_f, "INV_F_001",date_2)
+    data_handler.appendlist("หลอดไฟ LED", "วัสดุไฟฟ้า", "10 หลอด", date_b, 45.00, company_c, "INV_C_001", date_b)
+    data_handler.appendlist("สายไฟ", "วัสดุไฟฟ้า", "1 ม้วน", date_b, 200.00, company_c, "INV_C_001", date_b)
+    data_handler.appendlist("เม้าส์ไร้สาย", "อุปกรณ์คอมพิวเตอร์", "1 ชิ้น", date_b, 350.00, company_d, "INV_D_001", date_b)
 
     # วันที่ 20/มิ.ย./68
-    date_3 = "20/มิ.ย./68"
-    company_g = "บริษัท อาหารสด"
-    company_h = "ร้านขายน้ำดื่ม"
-    company_i = "บริษัท อุปกรณ์กีฬา"
+    date_c = "20 มิ.ย. 68"
+    company_e = "ร้านค้าส่งอุปกรณ์" # บริษัทซ้ำจาก date_a แต่คนละวัน คนละใบรับ
+    company_f = "บริษัท อาหารสด"
 
-    data_handler.appendlist("นมสด", "วัสดุบริโภค", "6 กล่อง", date_3, 30.00, company_g, "INV_G_001",date_3)
-    data_handler.appendlist("น้ำดื่ม", "วัสดุบริโภค", "10 แพ็ค", date_3, 60.00, company_h, "INV_H_001",date_3)
-    data_handler.appendlist("ลูกฟุตบอล", "วัสดุการศึกษา", "1 ลูก", date_3, 500.50, company_i, "INV_I_001",date_3)
+    data_handler.appendlist("ปากกาเจล", "วัสดุสำนักงาน", "12 ด้าม", date_c, 18.00, company_e, "INV_E_001", date_c)
+    data_handler.appendlist("นมสด", "วัสดุบริโภค", "6 กล่อง", date_c, 30.00, company_f, "INV_F_001", date_c)
 
-    # กำหนดข้อมูล transaction_info (ใช้วันที่ปัจจุบันสำหรับการแสดงหัวบันทึกข้อความ)
+    data_handler.appendlist("เม้าส์ไร้สาย", "อุปกรณ์คอมพิวเตอร์", "1 ชิ้น", date_b, 350.00, company_d, "INV_D_099", date_b)
+
+    # กำหนดข้อมูล transaction_info
     transaction_info = {
-        "paid_to": "นาย ก. (ผู้รับของ)" # ข้อมูลนี้จะถูกนำไปใช้ในคอลัมน์ "รายการ"
+        "paid_to": "นาย ก. (ผู้รับของ)"
     }
 
     # เรียกใช้ฟังก์ชันสร้าง Excel
