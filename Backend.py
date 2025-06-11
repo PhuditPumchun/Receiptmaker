@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from collections import defaultdict
+import re
 
 class Data:
     def __init__(self):
@@ -35,10 +36,14 @@ class Data:
             return 0.0
 
     def parse_amount(self, amount_str):
-        # แยกตัวเลขออกจากสตริง (เช่น "10 ด้าม" จะได้ 10)
+        # แก้ไข: ใช้ Regular Expression เพื่อดึงตัวเลขทศนิยมหรือจำนวนเต็ม
         try:
-            return float(''.join(filter(str.isdigit, amount_str)))
-        except ValueError:
+            # ค้นหาเลขชุดแรกในสตริง (รองรับทศนิยม)
+            match = re.search(r'(\d+\.?\d*|\.\d+)', amount_str)
+            if match:
+                return float(match.group(0))
+            return 0.0
+        except (ValueError, TypeError):
             return 0.0
 
     def sorted(self):
